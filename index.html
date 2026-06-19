@@ -7,13 +7,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <title>DG AI — Multipurpose Assistant</title>
+  <script>
+    // WebLLM is loaded on-demand via dynamic import when Daddy Pro is first used.
+    // This avoids the race condition of type="module" vs regular scripts.
+    window._webllmPromise = null;
+    window._loadWebLLM = function() {
+      if (!window._webllmPromise) {
+        window._webllmPromise = import('https://esm.run/@mlc-ai/web-llm')
+          .then(mod => { window._webllm = mod; return mod; });
+      }
+      return window._webllmPromise;
+    };
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Smooth theme transitions */
+    body, #sidebar, .topbar, .bubble, .composer, #chatScreen,
+    .msg-group, .sidebar-nav-btn, #landing, #chatHistoryList,
+    .chat-history-item, .code-wrap, .composer-toolbar {
+      transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    }
 
     :root {
       --bg: #030508;
       --surface: #0b0e18;
       --surface2: #101420;
+      --surface3: #0d1120;
       --border: rgba(255,255,255,0.05);
       --border2: rgba(255,255,255,0.10);
       --accent: #22d3ee;
@@ -24,6 +44,24 @@
       --muted: #505570;
       --muted2: #7880a0;
       --glow: rgba(34,211,238,0.15);
+      /* Derived surfaces used by hardcoded elements */
+      --bg-glass: rgba(3,5,8,0.88);
+      --bg-glass2: rgba(8,10,20,0.97);
+      --bg-glass3: rgba(13,15,26,0.9);
+      --bubble-ai-bg1: #0d1120;
+      --bubble-ai-bg2: #090c17;
+      --user-avatar-bg1: #1e2235;
+      --user-avatar-bg2: #13162a;
+      --send-btn-bg: linear-gradient(145deg, #22d3ee 0%, #0891b2 60%, #0e7490 100%);
+      --code-bg: #03050d;
+      --input-area-bg: rgba(3,5,8,0.92);
+      --composer-bg: linear-gradient(160deg, #0d1020 0%, #090c18 100%);
+      --thinking-bg1: #0d1120;
+      --thinking-bg2: #090c17;
+      /* Font families */
+      --font-heading: 'Syne', sans-serif;
+      --font-body: 'Instrument Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     html, body { height: 100%; overflow: hidden; }
@@ -34,6 +72,7 @@
       color: var(--text);
       display: flex;
       flex-direction: column;
+      transition: background 0.4s ease, color 0.4s ease;
     }
 
     /* ═══════════════════════════════
@@ -45,7 +84,7 @@
       left: 0;
       width: 280px;
       height: 100vh;
-      background: rgba(8,10,20,0.97);
+      background: var(--bg-glass2);
       border-right: 1px solid var(--border2);
       backdrop-filter: blur(24px);
       z-index: 100;
@@ -229,6 +268,7 @@
       gap: 3px;
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,0.06) transparent;
+      min-height: 0;
     }
 
     .chat-history-item {
@@ -313,7 +353,7 @@
       z-index: 101;
       width: 36px;
       height: 36px;
-      background: rgba(13,15,26,0.9);
+      background: var(--bg-glass3);
       border: 1px solid var(--border2);
       border-radius: 10px;
       cursor: pointer;
@@ -388,11 +428,12 @@
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(34,211,238,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(52,211,153,0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 60% at 60% 30%, rgba(6,182,212,0.04) 0%, transparent 50%);
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(var(--accent-rgb, 34,211,238),0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(var(--accent-rgb, 34,211,238),0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 60% 30%, rgba(var(--accent-rgb, 34,211,238),0.03) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
+      transition: background 0.4s ease;
     }
     body::after {
       content: '';
@@ -571,7 +612,7 @@
       justify-content: space-between;
       padding: 12px 24px;
       border-bottom: 1px solid rgba(255,255,255,0.05);
-      background: rgba(3,5,8,0.88);
+      background: var(--bg-glass);
       backdrop-filter: blur(32px);
       -webkit-backdrop-filter: blur(32px);
       flex-shrink: 0;
@@ -666,7 +707,7 @@
       box-shadow: 0 0 20px rgba(34,211,238,0.28), 0 2px 8px rgba(0,0,0,0.4);
     }
     .avatar.user {
-      background: linear-gradient(145deg, #1e2235, #13162a);
+      background: linear-gradient(145deg, var(--user-avatar-bg1), var(--user-avatar-bg2));
       color: var(--muted2);
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -686,7 +727,7 @@
       word-break: break-word;
     }
     .bubble.ai {
-      background: linear-gradient(160deg, #0d1120 0%, #090c17 100%);
+      background: linear-gradient(160deg, var(--bubble-ai-bg1) 0%, var(--bubble-ai-bg2) 100%);
       border: 1px solid rgba(255,255,255,0.08);
       color: var(--text);
       border-radius: 3px 16px 16px 16px;
@@ -735,7 +776,7 @@
 
     /* THINKING / PROCESSING BUBBLE */
     .thinking-bubble {
-      background: linear-gradient(160deg, #0d1120, #090c17);
+      background: linear-gradient(160deg, var(--thinking-bg1), var(--thinking-bg2));
       border: 1px solid rgba(34,211,238,0.15);
       padding: 14px 20px 14px 16px;
       border-radius: 3px 16px 16px 16px;
@@ -910,7 +951,7 @@
 
     /* CODE BLOCK */
     .code-wrap {
-      background: #03050d;
+      background: var(--code-bg);
       border: 1px solid rgba(34,211,238,0.14);
       border-radius: 16px;
       overflow: hidden;
@@ -1105,7 +1146,7 @@
     ═══════════════════════════════ */
     .input-shell {
       padding: 16px 28px 22px;
-      background: rgba(3,5,8,0.92);
+      background: var(--input-area-bg);
       border-top: 1px solid rgba(255,255,255,0.05);
       flex-shrink: 0;
       backdrop-filter: blur(32px);
@@ -1166,7 +1207,7 @@
     }
 
     .composer {
-      background: linear-gradient(160deg, #0d1020 0%, #090c18 100%);
+      background: var(--composer-bg);
       border: 1px solid rgba(255,255,255,0.10);
       border-radius: 18px;
       padding: 4px 4px 4px 20px;
@@ -1209,7 +1250,7 @@
     .composer-actions { display: flex; align-items: center; gap: 6px; padding: 4px; }
     .send-btn {
       width: 38px; height: 38px; border-radius: 12px;
-      background: linear-gradient(145deg, #22d3ee 0%, #0891b2 60%, #0e7490 100%);
+      background: var(--send-btn-bg);
       border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
       box-shadow: 0 4px 18px rgba(34,211,238,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
@@ -1546,7 +1587,7 @@
       position: relative; z-index: 1;
       width: 100%; max-width: 760px;
       max-height: 88vh;
-      background: #0b0d1a;
+      background: var(--surface);
       border: 1px solid rgba(34,211,238,0.25);
       border-radius: 22px;
       overflow: hidden;
@@ -1577,7 +1618,7 @@
     .don-container {
       position: relative; z-index: 1;
       width: 100%; max-width: 420px;
-      background: #0b0d1a;
+      background: var(--surface);
       border: 1px solid rgba(34,211,238,0.25);
       border-radius: 22px;
       overflow: hidden;
@@ -1752,7 +1793,7 @@
 
     /* PPT COUNT BUTTONS */
     .ppt-count-btn {
-      background: #13162a;
+      background: var(--surface2);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 10px;
       color: #8890b0;
@@ -1781,6 +1822,58 @@
     .ppt-theme-card.selected::after { content:'✓'; position:absolute;top:6px;right:8px;font-size:0.75rem;font-weight:700;color:#fff; }
     .ptc-name { font-size:0.75rem; font-weight:700; margin-top:8px; }
     .ptc-sub { font-size:0.6rem; margin-top:2px; opacity:0.7; }
+
+    /* MODEL CARDS */
+    .model-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 18px;
+      padding: 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .model-card:hover { transform: translateY(-3px); border-color: var(--card-accent, var(--accent)); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
+    .model-card.active { border-color: var(--card-accent, var(--accent)); box-shadow: 0 0 0 1px var(--card-accent, var(--accent)), 0 12px 32px rgba(0,0,0,0.35); }
+    .model-card-top { display: flex; align-items: center; gap: 12px; }
+    .model-card-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 35%, transparent);
+    }
+    .model-card-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.02rem; color: var(--text); letter-spacing: -0.01em; }
+    .model-card-active-badge {
+      margin-left: auto; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--card-accent, var(--accent)); background: color-mix(in srgb, var(--card-accent, var(--accent)) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 35%, transparent);
+      padding: 3px 9px; border-radius: 100px; display: none; white-space: nowrap;
+    }
+    .model-card.active .model-card-active-badge { display: inline-block; }
+    .model-card-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .model-card-tag {
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.02em;
+      color: var(--card-accent, var(--accent));
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 30%, transparent);
+      padding: 5px 10px; border-radius: 100px;
+    }
+    .model-card-desc { font-size: 0.8rem; line-height: 1.6; color: var(--muted2); flex: 1; }
+    .model-card-cta {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.74rem;
+      color: var(--card-accent, var(--accent)); background: color-mix(in srgb, var(--card-accent, var(--accent)) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 30%, transparent);
+      border-radius: 9px; padding: 9px; transition: all 0.2s;
+    }
+    .model-card:hover .model-card-cta, .model-card.active .model-card-cta {
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 20%, transparent);
+    }
+    .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   </style>
 </head>
 <body>
@@ -1796,15 +1889,15 @@
 
   <div class="sidebar-divider"></div>
 
-  <!-- NAV: API ENTRY -->
+  <!-- NAV: MODELS ENTRY -->
   <div style="padding:12px 10px 4px;">
-    <button class="sidebar-nav-btn" id="apiNavBtn" onclick="goApiScreen()">
+    <button class="sidebar-nav-btn" id="modelsNavBtn" onclick="openModelsScreen()">
       <span class="snb-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
         </svg>
       </span>
-      <span class="snb-label">API</span>
+      <span class="snb-label">Models</span>
       <span class="snb-arrow">›</span>
     </button>
   </div>
@@ -1817,11 +1910,25 @@
     <button class="new-chat-btn" onclick="startNewChat()">+ New</button>
   </div>
 
-  <div id="chatHistoryList">
+  <div id="chatHistoryList" style="flex:1;">
     <div class="sidebar-empty-state">
       <div class="sei-icon">💬</div>
       No chats yet.<br>Start a conversation to see it here.
     </div>
+  </div>
+
+  <!-- SIDEBAR BOTTOM: SETTINGS -->
+  <div class="sidebar-divider"></div>
+  <div style="padding:10px 10px 16px;flex-shrink:0;">
+    <button class="sidebar-nav-btn" onclick="openSettingsModal()" style="background:rgba(255,255,255,0.02);">
+      <span class="snb-icon" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:var(--muted2);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </span>
+      <span class="snb-label" style="color:var(--muted2);">Settings</span>
+      <span class="snb-arrow" style="color:var(--muted);">›</span>
+    </button>
   </div>
 </div>
 
@@ -1961,10 +2068,10 @@
       <div class="composer">
         <textarea id="chatInput" placeholder="Ask me anything — code, writing, research, images, maths..." rows="1" onkeydown="handleKey(event,'chat')"></textarea>
         <div class="composer-actions">
-          <select id="modelSelect" onchange="handleModelChange(this.value)" title="Select AI Model" style="background:var(--surface2);border:1px solid var(--border2);border-radius:9px;color:var(--muted2);font-family:inherit;font-size:0.7rem;font-weight:600;padding:6px 28px 6px 10px;outline:none;cursor:pointer;transition:all 0.2s;appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a5f7a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 8px center;letter-spacing:0.03em;" onfocus="this.style.borderColor='rgba(34,211,238,0.4)';this.style.color='var(--accent)'" onblur="this.style.borderColor='var(--border2)';updateModelSelectColor()">
-            <option value="dragon">🐉 Dragon</option>
-            <option value="daddy">👑 Daddy Model</option>
-          </select>
+          <button type="button" id="modelChipBtn" onclick="openModelsScreen()" title="Choose AI Model" style="display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;color:var(--muted2);font-family:inherit;font-size:0.7rem;font-weight:600;padding:7px 12px;outline:none;cursor:pointer;transition:all 0.2s;letter-spacing:0.03em;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(34,211,238,0.4)'" onmouseout="updateModelSelectColor()">
+            <span id="modelChipLabel">👑 Daddy Model</span>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
           <button class="send-btn" onclick="handleSend('chat')">
             <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -2039,7 +2146,7 @@
 </div>
 
 <!-- Hidden file input for attachments -->
-<input type="file" id="attachFileInput" multiple accept="image/*,.pdf,.txt,.csv,.json,.md,.js,.py,.html,.css" style="display:none" onchange="handleFileAttach(this)">
+<input type="file" id="attachFileInput" multiple accept="image/*,.pdf,.txt,.csv,.json,.md,.js,.ts,.jsx,.tsx,.py,.html,.css,.xml,.yaml,.yml,.sh,.log" style="display:none" onchange="handleFileAttach(this)">
 
 <!-- ═════════════════ PPT MODAL ═════════════════ -->
 <div id="pptModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);overflow-y:auto;padding:24px 16px;">
@@ -2140,7 +2247,7 @@
     <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;margin-bottom:24px;">
       <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:14px;">Base URL</div>
       <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;">
-        <code id="baseUrlDisplay" style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:#a5f3fc;flex:1;word-break:break-all;">/.netlify/functions/dg-ai-7616</code>
+        <code id="baseUrlDisplay" style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:#a5f3fc;flex:1;word-break:break-all;">/.netlify/functions/dg-ai-7616-7616</code>
         <button onclick="copyText('/.netlify/functions/dg-ai-7616','copyBaseBtn')" id="copyBaseBtn" style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);border-radius:8px;color:var(--accent);font-size:0.7rem;font-family:inherit;padding:6px 14px;cursor:pointer;transition:0.2s;white-space:nowrap;">⎘ Copy</button>
       </div>
     </div>
@@ -2152,7 +2259,7 @@
       <!-- Method + path -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
         <span style="background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);color:#34d399;font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:6px;">POST</span>
-        <code style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--text);">/.netlify/functions/dg-ai-7616</code>
+        <code style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--text);">/.netlify/functions/dg-ai-7616-7616</code>
       </div>
 
       <!-- Request body -->
@@ -2248,18 +2355,18 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:16px;">
           <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">👑 Daddy Model</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:#a78bfa;font-weight:700;" id="rlDaddy">67 req / 24h</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:#a78bfa;font-weight:700;" id="rlDaddy">32 req / 3h</div>
         </div>
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:16px;">
           <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">🐉 Dragon Model</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--accent);font-weight:700;" id="rlDragon">34 req / 24h</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--accent);font-weight:700;" id="rlDragon">32k tokens / 5h</div>
         </div>
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:16px;">
           <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">🧪 API Playground</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--green);font-weight:700;" id="rlApi">45 req / 24h</div>
         </div>
       </div>
-      <div style="font-size:0.72rem;color:var(--muted);margin-top:12px;">Limits are per user (IP-based) and reset every 24 hours. VPN usage may affect tracking.</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:12px;">Daddy: 32 req/3h · Dragon: 32k tokens/5h · API: 45 req/24h (IP-based). VPN usage may affect tracking.</div>
     </div>
 
     <!-- Test live -->
@@ -2275,18 +2382,329 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
   </div>
 </div>
 
+<!-- ═════════════════ MODELS SCREEN ═════════════════ -->
+<div id="modelsScreen" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;">
+  <div style="max-width:980px;margin:0 auto;padding:48px 28px 80px;">
+
+    <!-- Back -->
+    <button onclick="closeModelsScreen()" style="background:none;border:1px solid var(--border2);border-radius:9px;color:var(--muted2);font-family:inherit;font-size:0.78rem;padding:7px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:0.2s;margin-bottom:40px;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted2)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+
+    <!-- Header -->
+    <div style="margin-bottom:36px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;padding:6px 16px;border:1px solid rgba(34,211,238,0.3);border-radius:100px;font-size:0.68rem;font-weight:700;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;background:rgba(34,211,238,0.05);margin-bottom:20px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        DG AI · Model Lineup
+      </div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#22d3ee 0%,#a5f3fc 40%,#34d399 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:14px;line-height:1.1;">Choose your model</h1>
+      <p style="color:var(--muted2);font-size:1rem;line-height:1.7;max-width:620px;">Every model is built for a different job. Pick the one that fits what you're doing right now — you can switch any time.</p>
+    </div>
+
+    <!-- Cards -->
+    <div class="models-grid">
+
+      <div class="model-card" data-model="daddy" style="--card-accent:#22d3ee;" onclick="chooseModelFromScreen('daddy')">
+        <div class="model-card-top">
+          <div class="model-card-icon">👑</div>
+          <div class="model-card-name">Daddy Model</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">All-rounder</span>
+          <span class="model-card-tag">Perfect day to day assistant</span>
+        </div>
+        <p class="model-card-desc">Balanced and dependable across almost anything you throw at it. The model most people should start with.</p>
+        <div class="model-card-cta">Use Daddy Model</div>
+      </div>
+
+      <div class="model-card" data-model="dragon" style="--card-accent:#7dd3fc;" onclick="chooseModelFromScreen('dragon')">
+        <div class="model-card-top">
+          <div class="model-card-icon">🐉</div>
+          <div class="model-card-name">Dragon Model</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Lightweight &amp; our first model</span>
+          <span class="model-card-tag">Great for quick answers</span>
+        </div>
+        <p class="model-card-desc">A lightweight, efficient model tuned for short questions and snappy back-and-forth conversation.</p>
+        <div class="model-card-cta">Use Dragon Model</div>
+      </div>
+
+      <div class="model-card" data-model="dg-elite" style="--card-accent:#fbbf24;" onclick="chooseModelFromScreen('dg-elite')">
+        <div class="model-card-top">
+          <div class="model-card-icon">🏆</div>
+          <div class="model-card-name">DG Elite</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Flagship reasoning</span>
+          <span class="model-card-tag">Best for complex tasks</span>
+        </div>
+        <p class="model-card-desc">The most capable model in the lineup — built for deep reasoning, multi-step problems, and high-stakes work.</p>
+        <div class="model-card-cta">Use DG Elite</div>
+      </div>
+
+      <div class="model-card" data-model="dg-tyser" style="--card-accent:#38bdf8;" onclick="chooseModelFromScreen('dg-tyser')">
+        <div class="model-card-top">
+          <div class="model-card-icon">💻</div>
+          <div class="model-card-name">DG Apex</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Coding master</span>
+          <span class="model-card-tag">Debugging &amp; architecture</span>
+        </div>
+        <p class="model-card-desc">Specialised for writing, reviewing, and debugging code — from quick scripts to full architecture.</p>
+        <div class="model-card-cta">Use DG Apex</div>
+      </div>
+
+      <div class="model-card" data-model="dg-kollab" style="--card-accent:#34d399;" onclick="chooseModelFromScreen('dg-kollab')">
+        <div class="model-card-top">
+          <div class="model-card-icon">🤝</div>
+          <div class="model-card-name">DG Forge</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Collaborative writing</span>
+          <span class="model-card-tag">Docs, emails &amp; content</span>
+        </div>
+        <p class="model-card-desc">Tuned for collaborative work — drafting documents, emails, and content with a professional, human tone.</p>
+        <div class="model-card-cta">Use DG Forge</div>
+      </div>
+
+      <div class="model-card" data-model="dg-phantom" style="--card-accent:#c084fc;" onclick="chooseModelFromScreen('dg-phantom')">
+        <div class="model-card-top">
+          <div class="model-card-icon">👻</div>
+          <div class="model-card-name">DG Phantom</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Creative &amp; unfiltered</span>
+          <span class="model-card-tag">Brainstorming &amp; fiction</span>
+        </div>
+        <p class="model-card-desc">Leans into open-ended, imaginative output — ideal for brainstorming, fiction, and creative exploration.</p>
+        <div class="model-card-cta">Use DG Phantom</div>
+      </div>
+
+      <div class="model-card" data-model="dg-munch" style="--card-accent:#fb923c;" onclick="chooseModelFromScreen('dg-munch')">
+        <div class="model-card-top">
+          <div class="model-card-icon">⚡</div>
+          <div class="model-card-name">DG Bolt</div>
+          <span class="model-card-active-badge">Active</span>
+        </div>
+        <div class="model-card-tags">
+          <span class="model-card-tag">Fastest responses</span>
+          <span class="model-card-tag">Low-latency everyday use</span>
+        </div>
+        <p class="model-card-desc">Optimised for speed — near-instant replies for quick lookups and lightweight everyday tasks.</p>
+        <div class="model-card-cta">Use DG Bolt</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="settingsModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow-y:auto;" onclick="if(event.target===this)closeSettingsModal()">
+  <div style="max-width:520px;margin:40px auto;padding:0 16px 80px;">
+    <div style="background:rgba(8,10,20,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:24px;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.6),0 0 0 1px rgba(34,211,238,0.08);">
+
+      <!-- Modal Header -->
+      <div style="padding:28px 28px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:8px;">DG AI</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;color:var(--text);">Settings</div>
+        </div>
+        <button onclick="closeSettingsModal()" style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted2);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted2)'">✕</button>
+      </div>
+
+      <!-- Theme Section -->
+      <div style="padding:24px 28px;">
+        <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+          Appearance
+        </div>
+
+        <!-- Theme picker — 2 cols, full-width preview bars -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;" id="themeGrid">
+
+          <!-- CYBER -->
+          <div class="settings-theme-card" id="theme-cyber" onclick="applyTheme('cyber')" style="border:2px solid rgba(34,211,238,0.55);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#03050a;">
+            <div style="height:52px;background:linear-gradient(135deg,#03050a 0%,#080c1a 60%,#0d1120 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 30% 40%,rgba(34,211,238,0.18) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#22d3ee;box-shadow:0 0 8px #22d3ee;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#34d399;box-shadow:0 0 8px #34d399;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(34,211,238,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#22d3ee;letter-spacing:0.02em;">Cyber</div>
+                <div style="font-size:0.58rem;color:#2dd4bf;margin-top:1px;">Teal &amp; Green</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px #22d3ee;" id="theme-cyber-dot"></div>
+            </div>
+          </div>
+
+          <!-- MIDNIGHT -->
+          <div class="settings-theme-card" id="theme-purple" onclick="applyTheme('purple')" style="border:2px solid rgba(255,255,255,0.07);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#060310;">
+            <div style="height:52px;background:linear-gradient(135deg,#060310 0%,#0d0720 60%,#130a28 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 70% 30%,rgba(124,58,237,0.25) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#a78bfa;box-shadow:0 0 8px #7c3aed;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#7c3aed;box-shadow:0 0 8px #7c3aed;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(167,139,250,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#a78bfa;letter-spacing:0.02em;">Midnight</div>
+                <div style="font-size:0.58rem;color:#c4b5fd;margin-top:1px;">Deep Purple</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #7c3aed;opacity:0.4;" id="theme-purple-dot"></div>
+            </div>
+          </div>
+
+          <!-- EMBER -->
+          <div class="settings-theme-card" id="theme-ember" onclick="applyTheme('ember')" style="border:2px solid rgba(255,255,255,0.07);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#0a0303;">
+            <div style="height:52px;background:linear-gradient(135deg,#0a0303 0%,#180606 60%,#2a0808 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 20%,rgba(239,68,68,0.22) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#f87171;box-shadow:0 0 8px #ef4444;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#fbbf24;box-shadow:0 0 6px #f59e0b;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(248,113,113,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#f87171;letter-spacing:0.02em;">Ember</div>
+                <div style="font-size:0.58rem;color:#fca5a5;margin-top:1px;">Red &amp; Fire</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#f87171;box-shadow:0 0 8px #ef4444;opacity:0.4;" id="theme-ember-dot"></div>
+            </div>
+          </div>
+
+          <!-- OCEAN -->
+          <div class="settings-theme-card" id="theme-ocean" onclick="applyTheme('ocean')" style="border:2px solid rgba(255,255,255,0.07);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#02060f;">
+            <div style="height:52px;background:linear-gradient(135deg,#02060f 0%,#060e1c 60%,#0a1830 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 20% 60%,rgba(14,165,233,0.22) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#38bdf8;box-shadow:0 0 8px #0ea5e9;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#0ea5e9;box-shadow:0 0 8px #0284c7;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(56,189,248,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#38bdf8;letter-spacing:0.02em;">Ocean</div>
+                <div style="font-size:0.58rem;color:#7dd3fc;margin-top:1px;">Deep Blue</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;box-shadow:0 0 8px #0ea5e9;opacity:0.4;" id="theme-ocean-dot"></div>
+            </div>
+          </div>
+
+          <!-- FOREST -->
+          <div class="settings-theme-card" id="theme-forest" onclick="applyTheme('forest')" style="border:2px solid rgba(255,255,255,0.07);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#02080a;">
+            <div style="height:52px;background:linear-gradient(135deg,#02080a 0%,#061209 60%,#0a1a0e 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 60% 50%,rgba(34,197,94,0.2) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#86efac;box-shadow:0 0 6px #22c55e;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(74,222,128,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#4ade80;letter-spacing:0.02em;">Forest</div>
+                <div style="font-size:0.58rem;color:#86efac;margin-top:1px;">Deep Green</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #22c55e;opacity:0.4;" id="theme-forest-dot"></div>
+            </div>
+          </div>
+
+          <!-- GOLD -->
+          <div class="settings-theme-card" id="theme-gold" onclick="applyTheme('gold')" style="border:2px solid rgba(255,255,255,0.07);border-radius:14px;padding:0;cursor:pointer;transition:all 0.2s;overflow:hidden;background:#080601;">
+            <div style="height:52px;background:linear-gradient(135deg,#080601 0%,#120e02 60%,#1e1604 100%);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 40% 30%,rgba(245,158,11,0.22) 0%,transparent 70%);"></div>
+              <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                <div style="width:20px;height:4px;border-radius:2px;background:#fbbf24;box-shadow:0 0 8px #f59e0b;"></div>
+                <div style="width:12px;height:4px;border-radius:2px;background:#f59e0b;box-shadow:0 0 6px #d97706;"></div>
+                <div style="width:8px;height:4px;border-radius:2px;background:rgba(251,191,36,0.3);"></div>
+              </div>
+            </div>
+            <div style="padding:8px 12px 10px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:800;color:#fbbf24;letter-spacing:0.02em;">Gold</div>
+                <div style="font-size:0.58rem;color:#fcd34d;margin-top:1px;">Amber Warm</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:#fbbf24;box-shadow:0 0 8px #f59e0b;opacity:0.4;" id="theme-gold-dot"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.05);margin:0 28px;"></div>
+
+      <!-- More Settings (Coming Soon) — static HTML, no JS template literals -->
+      <div style="padding:24px 28px;">
+        <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted2);margin-bottom:14px;">More Settings</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+
+          <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;opacity:0.5;">
+            <span style="font-size:1rem;width:26px;text-align:center;">🔔</span>
+            <div style="flex:1;"><div style="font-size:0.8rem;font-weight:600;color:var(--muted2);">Notifications</div><div style="font-size:0.6rem;color:var(--muted);margin-top:1px;">Push &amp; sound alerts</div></div>
+            <span style="background:rgba(255,255,255,0.06);color:var(--muted);font-size:0.52rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;border:1px solid rgba(255,255,255,0.09);white-space:nowrap;">Soon</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;opacity:0.5;">
+            <span style="font-size:1rem;width:26px;text-align:center;">🌐</span>
+            <div style="flex:1;"><div style="font-size:0.8rem;font-weight:600;color:var(--muted2);">Language</div><div style="font-size:0.6rem;color:var(--muted);margin-top:1px;">Interface language</div></div>
+            <span style="background:rgba(255,255,255,0.06);color:var(--muted);font-size:0.52rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;border:1px solid rgba(255,255,255,0.09);white-space:nowrap;">Soon</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;opacity:0.5;">
+            <span style="font-size:1rem;width:26px;text-align:center;">⌨️</span>
+            <div style="flex:1;"><div style="font-size:0.8rem;font-weight:600;color:var(--muted2);">Shortcuts</div><div style="font-size:0.6rem;color:var(--muted);margin-top:1px;">Custom keyboard shortcuts</div></div>
+            <span style="background:rgba(255,255,255,0.06);color:var(--muted);font-size:0.52rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;border:1px solid rgba(255,255,255,0.09);white-space:nowrap;">Soon</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;opacity:0.5;">
+            <span style="font-size:1rem;width:26px;text-align:center;">📦</span>
+            <div style="flex:1;"><div style="font-size:0.8rem;font-weight:600;color:var(--muted2);">Export Data</div><div style="font-size:0.6rem;color:var(--muted);margin-top:1px;">Download chat history</div></div>
+            <span style="background:rgba(255,255,255,0.06);color:var(--muted);font-size:0.52rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;border:1px solid rgba(255,255,255,0.09);white-space:nowrap;">Soon</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;opacity:0.5;">
+            <span style="font-size:1rem;width:26px;text-align:center;">🔒</span>
+            <div style="flex:1;"><div style="font-size:0.8rem;font-weight:600;color:var(--muted2);">Privacy</div><div style="font-size:0.6rem;color:var(--muted);margin-top:1px;">Data &amp; tracking options</div></div>
+            <span style="background:rgba(255,255,255,0.06);color:var(--muted);font-size:0.52rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;border:1px solid rgba(255,255,255,0.09);white-space:nowrap;">Soon</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
   const NETLIFY_FUNCTION_ENDPOINT = '/.netlify/functions/dg-ai-7616';
   const ENDPOINT = NETLIFY_FUNCTION_ENDPOINT;
   const POLLINATIONS_TEXT_ENDPOINT = 'https://text.pollinations.ai/';
   const DEVTOOLBOX_ENDPOINT = 'https://devtoolbox-api.devtoolbox-api.workers.dev';
   const DEEP_SEARCH_ENABLED = true;
-  const DADDY_RATE_LIMIT_KEY = 'dg_daddy_rate_limit_v2';
-  const DRAGON_RATE_LIMIT_KEY = 'dg_dragon_rate_limit_v2';
-  const UNIVERSAL_REQUEST_LIMIT = 67;   // universal limit per user (IP-based)
-  const DRAGON_REQUEST_LIMIT = 34;      // Dragon model limit per user (IP-based)
-  const API_REQUEST_LIMIT = 45;         // API playground request limit
-  const DADDY_RATE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24-hour window
+  const DADDY_RATE_LIMIT_KEY = 'dg_daddy_rate_limit_v3';
+  const DRAGON_RATE_LIMIT_KEY = 'dg_dragon_rate_limit_v3';
+  const UNIVERSAL_REQUEST_LIMIT = 32;           // Daddy model: 32 requests per 3 hours
+  const DRAGON_REQUEST_LIMIT = 32;              // Dragon model: 32 requests per 5 hours (token-tracked)
+  const DRAGON_TOKEN_LIMIT = 32000;             // Dragon model: 32,000 tokens per 5 hours
+  const API_REQUEST_LIMIT = 45;                 // API playground request limit
+  const DADDY_RATE_WINDOW_MS = 3 * 60 * 60 * 1000;   // 3-hour window for Daddy
+  const DRAGON_RATE_WINDOW_MS = 5 * 60 * 60 * 1000;  // 5-hour window for Dragon
+  const DRAGON_TOKEN_KEY = 'dg_dragon_tokens_v3';
   let lastRateLimitState = null;
   let _cachedUserIP = null;
 
@@ -2334,17 +2752,18 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
   // ── Request-count rate limit helpers (IP-keyed via localStorage) ──
   function _rlKey(base, ipFp) { return base + '_' + (ipFp || 'anon'); }
 
-  function loadRequestState(storageKey) {
+  function loadRequestState(storageKey, windowMs) {
     try {
       const parsed = JSON.parse(localStorage.getItem(storageKey) || '{}');
       const startedAt = Number(parsed.startedAt) || Date.now();
       const usedRequests = Number(parsed.usedRequests) || 0;
-      if (Date.now() - startedAt >= DADDY_RATE_WINDOW_MS) {
-        return { startedAt: Date.now(), usedRequests: 0 };
+      const usedTokens = Number(parsed.usedTokens) || 0;
+      if (Date.now() - startedAt >= (windowMs || DADDY_RATE_WINDOW_MS)) {
+        return { startedAt: Date.now(), usedRequests: 0, usedTokens: 0 };
       }
-      return { startedAt, usedRequests };
+      return { startedAt, usedRequests, usedTokens };
     } catch (_) {
-      return { startedAt: Date.now(), usedRequests: 0 };
+      return { startedAt: Date.now(), usedRequests: 0, usedTokens: 0 };
     }
   }
 
@@ -2352,9 +2771,9 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
     try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch (_) {}
   }
 
-  function getRequestLimitStatus(storageKey, limit) {
-    const state = loadRequestState(storageKey);
-    const resetAt = state.startedAt + DADDY_RATE_WINDOW_MS;
+  function getRequestLimitStatus(storageKey, limit, windowMs) {
+    const state = loadRequestState(storageKey, windowMs);
+    const resetAt = state.startedAt + (windowMs || DADDY_RATE_WINDOW_MS);
     const remaining = Math.max(0, limit - state.usedRequests);
     return {
       usedRequests: state.usedRequests,
@@ -2365,33 +2784,57 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
     };
   }
 
-  function consumeRequest(storageKey, limit) {
-    const state = loadRequestState(storageKey);
+  function consumeRequest(storageKey, limit, windowMs) {
+    const state = loadRequestState(storageKey, windowMs);
     state.usedRequests = Math.min(limit, state.usedRequests + 1);
     saveRequestState(storageKey, state);
-    return getRequestLimitStatus(storageKey, limit);
+    return getRequestLimitStatus(storageKey, limit, windowMs);
+  }
+
+  // ── Dragon token tracking ─────────────────────────────────────
+  function estimateTokens(text) { return Math.ceil((text || '').length / 4); }
+
+  function getDragonTokenStatus() {
+    const state = loadRequestState(DRAGON_TOKEN_KEY, DRAGON_RATE_WINDOW_MS);
+    const resetAt = state.startedAt + DRAGON_RATE_WINDOW_MS;
+    const remaining = Math.max(0, DRAGON_TOKEN_LIMIT - state.usedTokens);
+    return {
+      usedTokens: state.usedTokens,
+      remainingTokens: remaining,
+      exceedsLimit: state.usedTokens >= DRAGON_TOKEN_LIMIT,
+      resetAt
+    };
+  }
+
+  function consumeDragonTokens(inputText, responseText) {
+    const fp_key = DRAGON_TOKEN_KEY; // simplified — fingerprinting used below in async wrappers
+    const state = loadRequestState(fp_key, DRAGON_RATE_WINDOW_MS);
+    const tokens = estimateTokens(inputText) + estimateTokens(responseText);
+    state.usedTokens = Math.min(DRAGON_TOKEN_LIMIT, (state.usedTokens || 0) + tokens);
+    saveRequestState(fp_key, state);
+    return getDragonTokenStatus();
   }
 
   // ── Daddy (universal) rate limit — IP-based ────────────────────
   async function getDaddyRateLimitStatus() {
     const fp = await getUserFingerprint();
-    return getRequestLimitStatus(_rlKey(DADDY_RATE_LIMIT_KEY, fp), UNIVERSAL_REQUEST_LIMIT);
+    return getRequestLimitStatus(_rlKey(DADDY_RATE_LIMIT_KEY, fp), UNIVERSAL_REQUEST_LIMIT, DADDY_RATE_WINDOW_MS);
   }
 
   async function consumeDaddyRequest() {
     const fp = await getUserFingerprint();
-    return consumeRequest(_rlKey(DADDY_RATE_LIMIT_KEY, fp), UNIVERSAL_REQUEST_LIMIT);
+    return consumeRequest(_rlKey(DADDY_RATE_LIMIT_KEY, fp), UNIVERSAL_REQUEST_LIMIT, DADDY_RATE_WINDOW_MS);
   }
 
   // ── Dragon rate limit — IP-based ───────────────────────────────
   async function getDragonRateLimitStatus() {
     const fp = await getUserFingerprint();
-    return getRequestLimitStatus(_rlKey(DRAGON_RATE_LIMIT_KEY, fp), DRAGON_REQUEST_LIMIT);
+    return getRequestLimitStatus(_rlKey(DRAGON_RATE_LIMIT_KEY, fp), DRAGON_REQUEST_LIMIT, DRAGON_RATE_WINDOW_MS);
   }
 
   async function consumeDragonRequest() {
     const fp = await getUserFingerprint();
-    return consumeRequest(_rlKey(DRAGON_RATE_LIMIT_KEY, fp), DRAGON_REQUEST_LIMIT);
+    return consumeRequest(_rlKey(DRAGON_RATE_LIMIT_KEY, fp), DRAGON_REQUEST_LIMIT, DRAGON_RATE_WINDOW_MS);
   }
 
   // ── API Playground rate limit — IP-based ───────────────────────
@@ -2726,28 +3169,78 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
   function handleModelChange(value) {
     currentModel = value;
     updateModelSelectColor();
+    _updateModelHintAndBadge(value);
+  }
+
+  function _updateModelHintAndBadge(value) {
+    const MODEL_LABELS = {
+      'daddy': '👑 Daddy Model',
+      'dragon': '🐉 Dragon Model',
+      'dg-elite': '🏆 DG Elite',
+      'dg-tyser': '💻 DG Apex',
+      'dg-kollab': '🤝 DG Forge',
+      'dg-phantom': '👻 DG Phantom',
+      'dg-munch': '⚡ DG Bolt',
+    };
+    const MODEL_COLORS = {
+      'daddy': 'var(--accent)',
+      'dragon': 'var(--muted2)',
+      'dg-elite': '#fbbf24',
+      'dg-tyser': '#38bdf8',
+      'dg-kollab': '#34d399',
+      'dg-phantom': '#c084fc',
+      'dg-munch': '#fb923c',
+    };
+    const label = MODEL_LABELS[value] || '🐉 Dragon Model';
+    const color = MODEL_COLORS[value] || 'var(--muted2)';
     const hint = document.getElementById('activeModelHint');
-    if (hint) {
-      hint.textContent = value === 'daddy'
-        ? '👑 Daddy Model'
-        : '🐉 Dragon Model';
-      hint.style.color = value === 'daddy' ? 'var(--accent)' : 'var(--muted2)';
-    }
+    if (hint) { hint.textContent = label; hint.style.color = color; }
+    const chipLabel = document.getElementById('modelChipLabel');
+    if (chipLabel) chipLabel.textContent = label;
     const badge = document.querySelector('.topbar-model');
-    if (badge) badge.textContent = value === 'daddy' ? '👑 Daddy Model' : '🐉 Dragon Model';
+    if (badge) badge.textContent = label;
   }
 
   function updateModelSelectColor() {
-    const sel = document.getElementById('modelSelect');
-    if (!sel) return;
-    sel.value = currentModel;
-    if (currentModel === 'daddy') {
-      sel.style.color = 'var(--accent)';
-      sel.style.borderColor = 'rgba(34,211,238,0.4)';
-    } else {
-      sel.style.color = 'var(--muted2)';
-      sel.style.borderColor = 'var(--border2)';
-    }
+    const chipBtn = document.getElementById('modelChipBtn');
+    if (!chipBtn) return;
+    const MODEL_SELECT_STYLES = {
+      'daddy':          { color: 'var(--accent)',  border: 'rgba(34,211,238,0.4)' },
+      'dg-elite':       { color: '#fbbf24',         border: 'rgba(251,191,36,0.4)' },
+      'dg-tyser':       { color: '#38bdf8',         border: 'rgba(56,189,248,0.4)' },
+      'dg-kollab':      { color: '#34d399',         border: 'rgba(52,211,153,0.4)' },
+      'dg-phantom':     { color: '#c084fc',         border: 'rgba(192,132,252,0.4)' },
+      'dg-munch':       { color: '#fb923c',         border: 'rgba(251,146,60,0.4)' },
+    };
+    const style = MODEL_SELECT_STYLES[currentModel] || { color: 'var(--muted2)', border: 'var(--border2)' };
+    const chipLabel = document.getElementById('modelChipLabel');
+    if (chipLabel) chipLabel.style.color = style.color;
+    chipBtn.style.borderColor = style.border;
+  }
+
+  // ── Models screen ────────────────────────────────────────────────
+  function openModelsScreen() {
+    closeSidebar();
+    highlightActiveModelCard();
+    document.getElementById('modelsScreen').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModelsScreen() {
+    document.getElementById('modelsScreen').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function highlightActiveModelCard() {
+    document.querySelectorAll('.model-card').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-model') === currentModel);
+    });
+  }
+
+  function chooseModelFromScreen(value) {
+    handleModelChange(value);
+    highlightActiveModelCard();
+    closeModelsScreen();
   }
 
   // ── High-level Daddy fetch ──────────────────────────────────────
@@ -2984,6 +3477,75 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
     return reply;
   }
 
+  // ── DG WORKER MODELS (Elite / Tyser / Kollab / Phantom / Munch) ────────────
+  const DG_WORKER_ENDPOINT = 'https://dg-ai.scriptsnsenses.workers.dev/v1/chat';
+  const DG_WORKER_MODELS = {
+    'dg-elite':   'gpt-oss-120b',
+    'dg-tyser':   'qwen-coder-2.5-32b',
+    'dg-kollab':  'gemma-3-12b-it',
+    'dg-phantom': 'r1-distill-32b',
+    'dg-munch':   'qwen-2.5-vl-7b',
+  };
+
+async function fetchDGWorkerReply(msg, signal) {
+  const endpoint = `${DG_WORKER_ENDPOINT}/${currentModel.replace('dg-', '')}`;
+
+  const systemPrompt = 'You are DG AI — a powerful assistant...';
+
+  const messages = lastAiMessage
+    ? [
+        { role: 'system', content: systemPrompt },
+        { role: 'assistant', content: lastAiMessage },
+        { role: 'user', content: msg }
+      ]
+    : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: msg }
+      ];
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, max_tokens: 1024 }),
+    signal,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'DG Worker error ' + res.status);
+  }
+
+  const data = await res.json();
+
+  // dg-ai worker always returns a guaranteed-string `reply_text` field.
+  // Fall back to manually digging through `response` only for older
+  // worker deployments that predate that field.
+  let reply = data?.reply_text;
+
+  if (typeof reply !== 'string' || !reply) {
+    const r = data?.response;
+    if (typeof r === 'string') {
+      reply = r;
+    } else if (r?.choices?.[0]?.message?.content) {
+      reply = String(r.choices[0].message.content);
+    } else if (typeof r?.response === 'string') {
+      reply = r.response;
+    } else if (Array.isArray(r?.content) && r.content[0]?.text) {
+      reply = String(r.content[0].text);
+    } else if (typeof data?.content === 'string') {
+      reply = data.content;
+    } else if (typeof data?.text === 'string') {
+      reply = data.text;
+    } else {
+      reply = '';
+    }
+  }
+
+  if (!reply.trim()) throw new Error('DG Worker returned empty reply');
+
+  return reply.trim();
+}
+
   // ── POLLINATIONS CODE DETECTOR ──────────────────────────────────────────────
   // Detects if Pollinations returned code and returns { isCode, lang, clean }
   // Checks for: markdown fences, <!DOCTYPE html>, local =, import, def, etc.
@@ -3166,7 +3728,15 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
 
     const sender = document.createElement('div');
     sender.className = 'msg-sender';
-    sender.textContent = role === 'ai' ? (currentModel === 'daddy' ? '👑 DG AI · Daddy' : '🐉 DG AI · Dragon') : 'You';
+    const DG_SENDER_LABELS = {
+      'daddy': '👑 DG AI · Daddy',
+      'dg-elite': '🏆 DG AI · Elite',
+      'dg-tyser': '💻 DG AI · Tyser',
+      'dg-kollab': '🤝 DG AI · Kollab',
+      'dg-phantom': '👻 DG AI · Phantom',
+      'dg-munch': '⚡ DG AI · Munch',
+    };
+    sender.textContent = role === 'ai' ? (DG_SENDER_LABELS[currentModel] || '🐉 DG AI · Dragon') : 'You';
 
     const bubble = document.createElement('div');
     bubble.className = `bubble ${role}`;
@@ -3233,6 +3803,104 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
 
   // ── THINKING LETTER-GLOW INDICATOR ──
   const THINKING_WORD = 'Processing my Thoughts';
+  const THINKING_WORD_SEARCH = 'Searching The Web';
+
+  // ══════════════════════════════════════════════════════
+  //  WEB SEARCH — Wikipedia + DuckDuckGo (both CORS-open)
+  // ══════════════════════════════════════════════════════
+
+  async function searxngSearch(query) {
+    const results = [];
+
+    // ── Source 1: Wikipedia REST summary (CORS: *, most reliable) ──
+    try {
+      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/ /g,'_'))}`;
+      const sRes = await fetch(summaryUrl, { headers: { 'Accept': 'application/json' } });
+      if (sRes.ok) {
+        const s = await sRes.json();
+        if (s.extract && s.extract.length > 30) {
+          results.push({ title: s.title || query, url: s.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(query.replace(/ /g,'_'))}`, snippet: s.extract.slice(0, 600) });
+        }
+      }
+    } catch (e) { console.warn('[search] wiki summary:', e.message); }
+
+    // ── Source 2: Wikipedia search API (origin=* → CORS open) ──
+    try {
+      const wikiSearch = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`;
+      const wRes = await fetch(wikiSearch);
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        for (const hit of (wData.query?.search || []).slice(0, 5)) {
+          const snippet = hit.snippet.replace(/<[^>]+>/g, '');
+          results.push({ title: hit.title, url: `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title.replace(/ /g,'_'))}`, snippet });
+        }
+      }
+    } catch (e) { console.warn('[search] wiki search:', e.message); }
+
+    // ── Source 3: Wikipedia extracts for top result (gets full intro paragraph) ──
+    if (results.length > 0) {
+      try {
+        const topTitle = encodeURIComponent(results[0].title);
+        const extUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles=${topTitle}&format=json&origin=*`;
+        const extRes = await fetch(extUrl);
+        if (extRes.ok) {
+          const extData = await extRes.json();
+          const pages = extData.query?.pages || {};
+          const page = Object.values(pages)[0];
+          if (page?.extract && page.extract.length > 100) {
+            // Enrich the first result with full extract
+            results[0].snippet = page.extract.slice(0, 800);
+          }
+        }
+      } catch (e) { console.warn('[search] wiki extract:', e.message); }
+    }
+
+    // ── Source 4: DuckDuckGo IA (works if not blocked by browser) ──
+    try {
+      const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`;
+      const ddgRes = await fetch(ddgUrl);
+      if (ddgRes.ok) {
+        const ddg = await ddgRes.json();
+        if (ddg.Abstract && ddg.Abstract.length > 20) {
+          results.push({ title: ddg.Heading || query, url: ddg.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, snippet: ddg.Abstract });
+        }
+        for (const t of (ddg.RelatedTopics || []).slice(0, 3)) {
+          if (t.Text && t.FirstURL) results.push({ title: t.Text.split(' - ')[0] || query, url: t.FirstURL, snippet: t.Text });
+        }
+      }
+    } catch (e) { console.warn('[search] ddg:', e.message); }
+
+    console.log(`[search] "${query}" → ${results.length} results`);
+    return results.slice(0, 6);
+  }
+
+  async function searchAndSummarise(query) {
+    const results = await searxngSearch(query);
+
+    let prompt;
+    if (results.length > 0) {
+      const searchJson = JSON.stringify({
+        query,
+        results: results.map((r, i) => ({ index: i + 1, title: r.title, url: r.url, snippet: r.snippet }))
+      }, null, 2);
+      prompt = `You are DG AI. The user asked: "${query}"\n\nHere are real web search results:\n${searchJson}\n\nWrite a clear, helpful, well-structured answer based on these results. Cite result numbers like [1] where relevant. Be thorough but concise.`;
+    } else {
+      // No web results — answer from model knowledge
+      prompt = `You are DG AI. The user asked: "${query}"\n\nNo live web results were available. Answer from your knowledge as clearly and helpfully as possible.`;
+    }
+
+    const data = await dtbPOST('/ai/generate', { prompt, max_tokens: 600 });
+    const summary = extractDevToolboxText(data);
+    if (!summary) throw new Error('No summary from DevToolbox');
+
+    if (results.length === 0) return { summary, sourcesHtml: '' };
+
+    const sourceLinks = results.map((r, i) =>
+      `<a href="${r.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:7px;background:rgba(34,211,238,0.07);border:1px solid rgba(34,211,238,0.2);color:var(--accent);font-size:0.72rem;text-decoration:none;transition:0.15s;" onmouseover="this.style.background='rgba(34,211,238,0.14)'" onmouseout="this.style.background='rgba(34,211,238,0.07)'">[${i + 1}] ${r.title}</a>`
+    ).join(' ');
+    const sourcesHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><span style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Sources</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${sourceLinks}</div></div>`;
+    return { summary, sourcesHtml };
+  }
 
   function _buildLetterSpans(word, prefix) {
     return word.split('').map((ch, i) => {
@@ -4253,6 +4921,33 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
         setStatus('online');
         return;
       }
+
+      // ── "What is ..." triggers web search → DevToolbox summary ──
+      const whatIsMatch = msg.match(/^what\s+is\s+(.+)\??$/i);
+      if (whatIsMatch) {
+        addThinking(THINKING_WORD_SEARCH);
+        setStatus('generating');
+        try {
+          const result = await searchAndSummarise(msg);
+          removeThinking();
+          await consumeDaddyRequest();
+          setStatus('online');
+          lastAiMessage = result.summary;
+          const group = addMessage('ai', result.summary, false);
+          if (result.sourcesHtml) {
+            setTimeout(() => {
+              const bubble = group && group.querySelector('.bubble.ai');
+              if (bubble) { const d = document.createElement('div'); d.innerHTML = result.sourcesHtml; bubble.appendChild(d); }
+            }, result.summary.length * 7 + 500);
+          }
+          return;
+        } catch (searchErr) {
+          console.warn('[search] failed:', searchErr.message);
+          removeThinking();
+          // Fall through to normal AI
+        }
+      }
+
       addThinking();
       setStatus('generating');
       try {
@@ -4285,8 +4980,46 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
       return;
     }
 
+    // ── DG WORKER MODELS: Elite / Tyser / Kollab / Phantom / Munch ──
+    if (['dg-elite','dg-tyser','dg-kollab','dg-phantom','dg-munch'].includes(currentModel)) {
+      const DG_MODEL_NAMES = {
+        'dg-elite': 'DG Elite', 'dg-tyser': 'DG Apex',
+        'dg-kollab': 'DG Forge', 'dg-phantom': 'DG Phantom', 'dg-munch': 'DG Bolt'
+      };
+      const modelName = DG_MODEL_NAMES[currentModel] || currentModel;
+      addThinking();
+      setStatus('generating');
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 120000);
+        const reply = await fetchDGWorkerReply(msg, ctrl.signal);
+        clearTimeout(tid);
+        removeThinking();
+        if (!reply) {
+          addMessage('ai', '⚠️ ' + modelName + ' could not generate a reply. Please try again.', false);
+          setStatus('online');
+          return;
+        }
+        const detected = detectPollinationsCode(reply);
+        if (detected.isCode) {
+          setStatus('generated');
+          const markedCode = '__lang:' + detected.lang + ':' + detected.lang + '__\n' + detected.clean;
+          addMessage('ai', markedCode, true);
+        } else {
+          setStatus('online');
+          lastAiMessage = reply;
+          addMessage('ai', reply, false);
+        }
+      } catch (e) {
+        removeThinking();
+        addMessage('ai', '⚠️ ' + modelName + ' error: ' + (e.message || 'unknown error') + '. Please try again.', false);
+        setStatus('online');
+      }
+      return;
+    }
+
     // ── DRAGON MODE: demo intercepts and Pollinations routing ──
-    // Dragon request limit check (IP-based, 34 requests per 24h)
+    // Dragon rate limit: 32,000 tokens per 5 hours
     const dragonLimit = await getDragonRateLimitStatus();
     if (dragonLimit.exceedsLimit) {
       const resetTime = formatResetTime(dragonLimit.resetAt);
@@ -4298,6 +5031,32 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
     const wikiTriggers = ['tell me about','fetch some information about','fetch information about',
                           'give me information about','give me info about','wikipedia ','wiki '];
     const paraTriggers = ['generate a paragraph','generate paragraph','give me a paragraph'];
+
+    // ── "What is ..." triggers web search → DevToolbox summary (Dragon mode) ──
+    const whatIsMatchDragon = msg.match(/^what\s+is\s+(.+)\??$/i);
+    if (whatIsMatchDragon && !skipPollinations) {
+      addThinking(THINKING_WORD_SEARCH);
+      setStatus('generating');
+      try {
+        const result = await searchAndSummarise(msg);
+        removeThinking();
+        await consumeDragonRequest();
+        setStatus('online');
+        lastAiMessage = result.summary;
+        const group = addMessage('ai', result.summary, false);
+        if (result.sourcesHtml) {
+          setTimeout(() => {
+            const bubble = group && group.querySelector('.bubble.ai');
+            if (bubble) { const d = document.createElement('div'); d.innerHTML = result.sourcesHtml; bubble.appendChild(d); }
+          }, result.summary.length * 7 + 500);
+        }
+        return;
+      } catch (e) {
+        console.warn('[search] dragon fallback:', e.message);
+        removeThinking();
+        // Fall through to normal AI
+      }
+    }
 
     const isSharePrice = (ml.includes('share') || ml.includes('copy')) &&
                          (ml.includes('price') || ml.includes('stock') || ml.includes('data') || ml.includes('this'));
@@ -4316,7 +5075,7 @@ print(data.get('reply') or data.get('response') or data.get('text') or data.get(
       return;
     }
 
-    if (isStockQuery(msg)) {
+    if (!whatIsMatchDragon && isStockQuery(msg)) {
       const compMatch = msg.match(/compare\s+([A-Z]{1,5})\s+(?:vs\.?|versus|and|&)\s+([A-Z]{1,5})/i) ||
                         msg.match(/([A-Z]{1,5})\s+(?:vs\.?|versus)\s+([A-Z]{1,5})/i);
       if (compMatch) {
@@ -4701,7 +5460,7 @@ h1{font-size:clamp(2rem,7vw,4.5rem);line-height:.95;margin-bottom:20px;font-weig
   function isStockQuery(msg) {
     const m = msg.toLowerCase();
     const stockWords = ['price','stock','share','ticker','market','trading','nyse','nasdaq','nse','bse',
-                        'worth','value','how much is','what is','cost of','quote','chart','performance',
+                        'worth','value','how much is','cost of','quote','chart','performance',
                         'gain','loss','sensex','nifty','moneycontrol','zerodha','groww'];
     const hasStockWord = stockWords.some(w => m.includes(w));
     const hasTicker = detectTicker(msg) !== null;
@@ -6377,7 +7136,10 @@ end`;
     try {
       const dr = await getDragonRateLimitStatus();
       const el = document.getElementById('rlDragon');
-      if (el) el.textContent = `${dr.usedRequests}/${DRAGON_REQUEST_LIMIT} used · ${dr.remainingRequests} left`;
+      if (el) {
+        const ts = getDragonTokenStatus();
+        el.textContent = `${ts.usedTokens.toLocaleString()}/${DRAGON_TOKEN_LIMIT.toLocaleString()} tokens used · ${ts.remainingTokens.toLocaleString()} left`;
+      }
     } catch(_) {}
     try {
       const ap = await getApiRateLimitStatus();
@@ -7912,8 +8674,14 @@ Make content professional, factual, and visually impactful. Use varied font emph
   // ══════════════════════════════════════════════════════
   //  FILE ATTACHMENT SYSTEM
   // ══════════════════════════════════════════════════════
+  // Images  → Hugging Face BLIP captioning (CORS-open, no key needed)
+  //           then caption + user prompt → DevToolbox /ai/generate
+  // Text/CSV/JSON/Code → content directly → DevToolbox /ai/generate
+  // PDF     → client-side text extraction → DevToolbox /ai/generate
 
-  let _attachedFiles = []; // { file, dataUrl, type: 'image'|'text'|'other', name, textContent }
+  const HF_IMG_API = 'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large';
+
+  let _attachedFiles = []; // { file, dataUrl, type: 'image'|'text'|'pdf'|'other', name, textContent }
 
   function triggerFileAttach() {
     document.getElementById('attachFileInput').click();
@@ -7925,22 +8693,32 @@ Make content professional, factual, and visually impactful. Use varied font emph
 
     for (const file of files) {
       const isImage = file.type.startsWith('image/');
-      const isText  = file.type.startsWith('text/') || /\.(txt|csv|json|md|js|py|html|css)$/i.test(file.name);
+      const isPdf   = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      const isText  = !isImage && !isPdf && (file.type.startsWith('text/') || /\.(txt|csv|json|md|js|py|html|css|ts|jsx|tsx|xml|yaml|yml|sh|log)$/i.test(file.name));
 
-      const entry = { file, name: file.name, type: isImage ? 'image' : isText ? 'text' : 'other', dataUrl: null, textContent: null };
+      const entry = {
+        file,
+        name: file.name,
+        type: isImage ? 'image' : isPdf ? 'pdf' : isText ? 'text' : 'other',
+        dataUrl: null,
+        textContent: null
+      };
 
       if (isImage) {
         entry.dataUrl = await readFileAsDataUrl(file);
       } else if (isText) {
         entry.textContent = await readFileAsText(file);
+      } else if (isPdf) {
+        // Read as base64 for display; text extraction happens at send time
+        entry.dataUrl = await readFileAsDataUrl(file);
       }
 
       _attachedFiles.push(entry);
     }
 
     renderAttachBar();
-    input.value = ''; // reset so same file can be re-added
-    goChat(); // ensure we're on chat screen
+    input.value = '';
+    goChat();
   }
 
   function readFileAsDataUrl(file) {
@@ -7961,6 +8739,15 @@ Make content professional, factual, and visually impactful. Use varied font emph
     });
   }
 
+  function readFileAsArrayBuffer(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error('Read failed'));
+      r.readAsArrayBuffer(file);
+    });
+  }
+
   function renderAttachBar() {
     const bar = document.getElementById('attachPreviewBar');
     if (!bar) return;
@@ -7974,7 +8761,7 @@ Make content professional, factual, and visually impactful. Use varied font emph
           <button class="attach-chip-remove" onclick="removeAttach(${i})" title="Remove">✕</button>
         </div>`;
       }
-      const icon = f.type === 'text' ? '📄' : '📎';
+      const icon = f.type === 'pdf' ? '📕' : f.type === 'text' ? '📄' : '📎';
       return `<div class="attach-chip">
         <span class="attach-chip-icon">${icon}</span>
         <span class="attach-chip-name">${f.name}</span>
@@ -7988,104 +8775,205 @@ Make content professional, factual, and visually impactful. Use varied font emph
     renderAttachBar();
   }
 
-  // (handleSend unified patch is at the bottom of this script)
+  // ── Timed thinking phase runner for file processing ──
+  // Cycles through phases on a timer independent of actual async work.
+  // Call startFileThinkingPhases(fileWord) → returns stopFn you call when done.
+  function startFileThinkingPhases(fileWord) {
+    // fileWord = 'File' or 'Image'
+    const phases = [
+      `Fetching the ${fileWord}`,
+      `Processing ${fileWord}`,
+      `Analyzing ${fileWord}`,
+      `Taking a little longer than expected`
+    ];
+    const PHASE_MS = 20000; // 20 seconds each for first 3
+    let phaseIdx = 0;
+    let timer = null;
+    let stopped = false;
+
+    function advance() {
+      if (stopped) return;
+      transitionThinking(phases[phaseIdx]);
+      phaseIdx++;
+      if (phaseIdx < phases.length) {
+        // Last phase ("Taking a little longer") stays forever
+        const delay = phaseIdx < phases.length ? PHASE_MS : null;
+        if (delay !== null) timer = setTimeout(advance, delay);
+      }
+      // Phase 3 (index 3) = last one, no more setTimeout — stays until stop()
+    }
+
+    // Start immediately
+    advance();
+
+    return function stop() {
+      stopped = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+  }
+
+  // ── Hugging Face BLIP image captioning (no API key, CORS open) ──
+  async function hfImageCaption(file) {
+    const arrayBuffer = await readFileAsArrayBuffer(file);
+    const res = await fetch(HF_IMG_API, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'image/jpeg' },
+      body: arrayBuffer
+    });
+    if (!res.ok) throw new Error('HF captioning failed: ' + res.status);
+    const data = await res.json();
+    if (Array.isArray(data) && data[0]?.generated_text) return data[0].generated_text;
+    if (data.generated_text) return data.generated_text;
+    throw new Error('Unexpected HF response shape');
+  }
+
+  // ── Simple client-side PDF text extraction ──
+  async function extractPdfText(file) {
+    try {
+      const text = await readFileAsText(file);
+      const cleaned = text.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ')
+                          .replace(/\s{3,}/g, '\n')
+                          .trim();
+      if (cleaned.length > 100) return cleaned.slice(0, 8000);
+    } catch (_) {}
+    return null;
+  }
+
+  // ── Central file processor ──
+  async function processAttachedFile(entry, userPrompt, stopPhases) {
+    const intent = userPrompt || 'Analyse this file and give a detailed, helpful summary.';
+
+    if (entry.type === 'image') {
+      let caption = '';
+      try {
+        caption = await hfImageCaption(entry.file);
+      } catch (e) {
+        caption = `[Image: ${entry.name} — caption unavailable: ${e.message}]`;
+      }
+      const prompt = `The user attached an image named "${entry.name}". An AI image captioning model (BLIP) described it as: "${caption}".\n\nUser's request: ${intent}\n\nBased on the caption and the user's request, provide a helpful, detailed response.`;
+      const data = await dtbPOST('/ai/generate', { prompt, max_tokens: 600 });
+      const reply = extractDevToolboxText(data);
+      if (!reply) throw new Error('DevToolbox returned empty response');
+      return `🖼️ **Image Analysis** *(${entry.name})*\n\n**What the AI sees:** ${caption}\n\n---\n\n${reply}`;
+    }
+
+    if (entry.type === 'pdf') {
+      const pdfText = await extractPdfText(entry.file);
+      if (!pdfText || pdfText.length < 50) {
+        return `📕 **PDF: ${entry.name}**\n\n⚠️ This PDF appears to be scanned or image-based and could not be read as text. Please convert it to a text-based PDF or copy-paste its contents directly.`;
+      }
+      const prompt = `The user attached a PDF named "${entry.name}". Here is the extracted text content (up to 8000 chars):\n\n${pdfText}\n\nUser's request: ${intent}\n\nRespond helpfully based on the document content.`;
+      const data = await dtbPOST('/ai/generate', { prompt, max_tokens: 600 });
+      const reply = extractDevToolboxText(data);
+      if (!reply) throw new Error('DevToolbox returned empty response');
+      return `📕 **PDF Analysis** *(${entry.name})*\n\n${reply}`;
+    }
+
+    if (entry.type === 'text') {
+      const content = (entry.textContent || '').slice(0, 10000);
+      const ext = entry.name.split('.').pop().toLowerCase();
+      const fileKind = ['csv','tsv'].includes(ext) ? 'CSV/tabular data file'
+        : ['json'].includes(ext) ? 'JSON file'
+        : ['py'].includes(ext) ? 'Python script'
+        : ['js','ts','jsx','tsx'].includes(ext) ? 'JavaScript/TypeScript file'
+        : ['html','css'].includes(ext) ? 'web file'
+        : ['md'].includes(ext) ? 'Markdown document'
+        : 'text file';
+      const prompt = `The user attached a ${fileKind} named "${entry.name}". Here is its content:\n\n${content}\n\nUser's request: ${intent}\n\nRespond helpfully. If it is code, analyse it. If it is data, summarise key insights. If it is a document, summarise and answer the user's question.`;
+      const data = await dtbPOST('/ai/generate', { prompt, max_tokens: 600 });
+      const reply = extractDevToolboxText(data);
+      if (!reply) throw new Error('DevToolbox returned empty response');
+      return `📄 **File Analysis** *(${entry.name})*\n\n${reply}`;
+    }
+
+    throw new Error(`Unsupported file type: ${entry.name}`);
+  }
 
   async function _handleSendWithAttachments(userText) {
-    const images = _attachedFiles.filter(f => f.type === 'image');
-    const texts  = _attachedFiles.filter(f => f.type === 'text');
+    const filesCopy = [..._attachedFiles];
+    _attachedFiles = [];
+    renderAttachBar();
 
-    // Build user bubble content
-    let bubbleHtml = '';
-    if (images.length > 0) {
-      bubbleHtml += images.map(f => `<img src="${f.dataUrl}" class="msg-attach-image" alt="${f.name}"/>`).join('');
-    }
-    if (userText) bubbleHtml += `<span>${escapeHTML(userText)}</span>`;
+    // Build user bubble
+    const images = filesCopy.filter(f => f.type === 'image');
+    let bubbleHtml = images.map(f => `<img src="${f.dataUrl}" class="msg-attach-image" alt="${f.name}"/>`).join('');
+    const fileChips = filesCopy.filter(f => f.type !== 'image')
+      .map(f => `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);border-radius:6px;font-size:0.75rem;color:var(--accent);">${f.type==='pdf'?'📕':'📄'} ${f.name}</span>`).join(' ');
+    if (fileChips) bubbleHtml += `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">${fileChips}</div>`;
+    if (userText)  bubbleHtml += `<div style="margin-top:${bubbleHtml?'8px':'0'}">${escapeHTML(userText)}</div>`;
 
-    // Show user message
     const msgs = document.getElementById('messages');
-    const group = document.createElement('div');
-    group.className = 'msg-group user';
-    group.innerHTML = `
+    const uGroup = document.createElement('div');
+    uGroup.className = 'msg-group user';
+    uGroup.innerHTML = `
       <div class="avatar user">U</div>
       <div class="msg-body">
         <div class="msg-sender">You</div>
         <div class="bubble user" style="display:block;">${bubbleHtml || '📎 Files attached'}</div>
       </div>`;
-    msgs.appendChild(group);
+    msgs.appendChild(uGroup);
     scrollBottom();
-
-    const filesCopy = [..._attachedFiles];
-    _attachedFiles = [];
-    renderAttachBar();
 
     goChat();
     setStatus('generating');
-    addThinking();
+
+    // Determine file word for phase labels
+    const hasImage = filesCopy.some(f => f.type === 'image');
+    const fileWord = hasImage && filesCopy.length === 1 ? 'Image' : 'File';
+
+    // Start timed phase indicator — runs independently of async work
+    addThinking(`Fetching the ${fileWord}`);
+    const stopPhases = startFileThinkingPhases(fileWord);
 
     try {
-      let reply = '';
-
-      if (images.length > 0) {
-        // Image analysis / editing via Pollinations
-        reply = await _analyseOrEditImages(images, userText);
-      } else if (texts.length > 0) {
-        // Text file analysis
-        const combinedText = texts.map(f => `\n\n--- FILE: ${f.name} ---\n${f.textContent}`).join('');
-        const prompt = (userText || 'Analyse this file and give a detailed summary.') + combinedText;
-        reply = await fetchPollinationsReply(prompt, new AbortController().signal);
+      const replies = [];
+      for (const entry of filesCopy) {
+        try {
+          const reply = await processAttachedFile(entry, userText);
+          replies.push(reply);
+        } catch (e) {
+          replies.push(`⚠️ Could not process **${entry.name}**: ${e.message}`);
+        }
       }
 
+      stopPhases();
       removeThinking();
-      if (reply) {
-        const detected = detectPollinationsCode(reply);
-        if (detected.isCode) {
-          setStatus('generated');
-          const marked = '__lang:' + detected.lang + ':' + detected.lang + '__\n' + detected.clean;
-          addMessage('ai', marked, true);
-        } else {
-          setStatus('online');
-          lastAiMessage = reply;
-          addMessage('ai', reply, false);
-        }
+      const combined = replies.join('\n\n---\n\n');
+      if (combined) {
+        setStatus('online');
+        lastAiMessage = combined;
+        addMessage('ai', combined, false);
       } else {
-        addMessage('ai', '⚠️ I couldn\'t process those files. Please try again.', false);
+        addMessage('ai', '⚠️ Could not process the attached files. Please try again.', false);
         setStatus('online');
       }
     } catch (e) {
+      stopPhases();
       removeThinking();
-      addMessage('ai', '⚠️ Error processing attachments: ' + (e.message || 'Unknown error'), false);
+      addMessage('ai', '⚠️ Attachment error: ' + (e.message || 'Unknown error'), false);
       setStatus('online');
     }
   }
 
   async function _analyseOrEditImages(images, userText) {
-    // Detect intent: edit or analyse
+    if (!images.length) return null;
     const txt = (userText || '').toLowerCase();
     const isEdit = /edit|change|modify|remove|replace|make it|turn|convert|add|filter|crop|resize|recolor|recolour|redraw|regenerate|redo|update|fix|enhance|improve|style|stylize/i.test(txt);
-    const isAnalyse = !isEdit || /analyse|analyze|describe|what is|what's in|identify|read|explain|tell me about|what do you see|ocr|transcribe/i.test(txt);
+    const isAnalyse = !isEdit || /analyse|analyze|describe|what is|what's in|identify|read|explain|ocr|transcribe/i.test(txt);
 
     if (isEdit && !isAnalyse) {
-      // Image editing — send to Pollinations image generation with the edit instruction
       const basePrompt = userText || 'Enhance this image';
       const seed = Math.floor(Math.random() * 99999);
       const editPrompt = `${basePrompt}, high quality, detailed, photorealistic`;
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(editPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
-
-      // Show the edited image as a card
       removeThinking();
       addImageCard({ imageUrl, prompt: editPrompt, seed, provider: 'DG AI Edit' });
       setStatus('generated');
-      return null; // handled inline
+      return null;
     }
 
-    // Image analysis — describe using Pollinations text with image context
-    const imgDescriptions = images.map(f => `[Attached image: ${f.name}]`).join(', ');
-    const systemCtx = `The user has attached ${images.length} image(s): ${imgDescriptions}. Analyse and describe what you see in detail, or answer the user's question about the image(s).`;
-    const prompt = systemCtx + '\n\nUser: ' + (userText || 'Describe this image in detail.');
-    return await fetchPollinationsReply(prompt, new AbortController().signal);
+    return await processAttachedFile(images[0], userText);
   }
-
-  // (image editing for Daddy mode routes through Pollinations image API inline)
 
   // ══════════════════════════════════════════════════════
   //  DEEP SEARCH SYSTEM
@@ -8110,9 +8998,16 @@ Make content professional, factual, and visually impactful. Use varied font emph
     const ta = document.getElementById('chatInput');
     const query = ta ? ta.value.trim() : '';
     if (!query) {
-      ta && ta.focus();
-      ta && (ta.placeholder = 'Type a topic to deep search first…');
-      setTimeout(() => { if (ta) ta.placeholder = 'Ask me anything…'; }, 2000);
+      if (ta) {
+        ta.focus();
+        const orig = ta.placeholder;
+        ta.placeholder = '🔭 Type your topic here, then click Deep Search…';
+        ta.style.borderColor = 'rgba(52,211,153,0.5)';
+        setTimeout(() => {
+          ta.placeholder = orig;
+          ta.style.borderColor = '';
+        }, 3000);
+      }
       return;
     }
     goChat();
@@ -8180,7 +9075,7 @@ Make content professional, factual, and visually impactful. Use varied font emph
     }
 
     try {
-      // ── Step 1: Generate detailed report via Pollinations ──
+      // ── Step 1: Generate detailed report ──
       setCardProgress(15, 'Generating detailed report…');
       await new Promise(r => setTimeout(r, 300));
 
@@ -8199,38 +9094,30 @@ The report must include:
 Use proper markdown formatting with ## headers. Be thorough, factual, and detailed. Minimum 600 words.`;
 
       setCardProgress(30, 'AI is writing your report (this may take a minute)…');
-      const rawReport = await fetchPollinationsReply(reportPrompt, new AbortController().signal);
 
-      setCardProgress(65, 'Verifying report with Daddy model…');
-      await new Promise(r => setTimeout(r, 400));
-
-      // ── Step 2: Verify with Daddy model ──
-      let verifiedReport = rawReport;
-      const verifyPrompt = `You are DG AI's fact-checker (Daddy model). Review this research report on "${query}" and:
-1. Correct any obvious factual errors
-2. Add a brief [VERIFIED] note at the top confirming the report is accurate
-3. Return the full corrected report
-
-Report to verify:
-${rawReport}`;
-
+      // Try Daddy first (most reliable), fall back to Pollinations
+      let rawReport = null;
       try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 30000);
-        const verifiedReply = await fetchDaddyReply(verifyPrompt, ctrl.signal);
-        clearTimeout(tid);
-        if (verifiedReply && verifiedReply.length > 200) {
-          verifiedReport = verifiedReply;
-        }
-      } catch (_) {
-        // Daddy unavailable — use raw report, mark as unverified
-        verifiedReport = '> ⚠️ Note: Verification step skipped (Daddy model unavailable). Report generated by DG AI.\n\n' + rawReport;
+        const ctrl1 = new AbortController();
+        const tid1 = setTimeout(() => ctrl1.abort(), 90000);
+        rawReport = await fetchDaddyReply(reportPrompt, ctrl1.signal);
+        clearTimeout(tid1);
+      } catch (_) {}
+
+      if (!rawReport || rawReport.length < 100) {
+        try {
+          rawReport = await fetchPollinationsReply(reportPrompt, new AbortController().signal);
+        } catch (_) {}
       }
 
-      setCardProgress(92, 'Finalising report…');
-      await new Promise(r => setTimeout(r, 300));
+      if (!rawReport || rawReport.length < 100) {
+        throw new Error('Could not generate report — both AI models failed to respond. Check your connection and try again.');
+      }
 
-      _deepSearchReportText = verifiedReport;
+      setCardProgress(80, 'Finalising report…');
+      await new Promise(r => setTimeout(r, 400));
+
+      _deepSearchReportText = rawReport;
 
       // ── Update card to "done" state ──
       setCardProgress(100, '✅ Report ready — click to read');
@@ -8241,7 +9128,7 @@ ${rawReport}`;
 
       // Store report on the card element for retrieval
       const card = document.getElementById(cardId);
-      if (card) { card._reportText = verifiedReport; card._reportQuery = query; }
+      if (card) { card._reportText = rawReport; card._reportQuery = query; }
 
       setStatus('generated');
       scrollBottom();
@@ -8424,6 +9311,16 @@ ${rawReport}`;
         <span style="${_lpmIconStyle('rgba(167,139,250,0.12)','rgba(167,139,250,0.3)')}">👑</span>
         Daddy Model
         <span id="lpmDaddyCheck" style="margin-left:auto;color:#a78bfa;display:${_landingModel==='daddy'?'block':'none'}">✓</span>
+      </button>
+      <button class="_lpm-btn" id="lpmProBtn" onclick="setLandingModel('daddy-pro')" style="${_lpmBtnStyle(_landingModel==='daddy-pro')}">
+        <span style="${_lpmIconStyle('rgba(167,139,250,0.2)','rgba(167,139,250,0.5)')}">⚡</span>
+        Daddy Pro
+        <span id="lpmProCheck" style="margin-left:auto;color:#a78bfa;display:${_landingModel==='daddy-pro'?'block':'none'}">✓</span>
+      </button>
+      <button class="_lpm-btn" id="lpmProLiteBtn" onclick="setLandingModel('daddy-pro-lite')" style="${_lpmBtnStyle(_landingModel==='daddy-pro-lite')}">
+        <span style="${_lpmIconStyle('rgba(110,231,183,0.15)','rgba(110,231,183,0.4)')}">🌙</span>
+        Daddy Pro Lite
+        <span id="lpmProLiteCheck" style="margin-left:auto;color:#6ee7b7;display:${_landingModel==='daddy-pro-lite'?'block':'none'}">✓</span>
       </button>`;
 
     shell.style.position = 'relative';
@@ -8456,8 +9353,25 @@ ${rawReport}`;
   }
 
   function setLandingModel(model) {
+    if (model === 'daddy-pro') {
+      showDaddyProMobileCheck(() => {
+        _applyLandingModel('daddy-pro');
+        initDaddyProEngine();
+      }, () => {
+        // stay on current model
+      });
+      return;
+    }
+    if (model === 'daddy-pro-lite') {
+      _applyLandingModel('daddy-pro-lite');
+      initDaddyProLiteEngine();
+      return;
+    }
+    _applyLandingModel(model);
+  }
+
+  function _applyLandingModel(model) {
     _landingModel = model;
-    // Sync with global currentModel so handleSend works
     currentModel = model;
     const sel = document.getElementById('modelSelect');
     if (sel) sel.value = model;
@@ -8465,25 +9379,38 @@ ${rawReport}`;
 
     // Update toggle pill
     const pill = document.getElementById('landingModelToggle');
-    if (pill) pill.textContent = model === 'daddy' ? '👑 Daddy Model' : '🐉 Dragon Model';
+    if (pill) pill.textContent = model === 'daddy' ? '👑 Daddy Model'
+      : model === 'daddy-pro' ? '⚡ Daddy Pro'
+      : model === 'daddy-pro-lite' ? '🌙 Daddy Pro Lite'
+      : '🐉 Dragon Model';
 
     // Update checks
-    const sc = document.getElementById('lpmSonCheck');
-    const dc = document.getElementById('lpmDaddyCheck');
-    if (sc) sc.style.display = model === 'dragon' ? 'block' : 'none';
-    if (dc) dc.style.display = model === 'daddy' ? 'block' : 'none';
+    const sc  = document.getElementById('lpmSonCheck');
+    const dc  = document.getElementById('lpmDaddyCheck');
+    const pc  = document.getElementById('lpmProCheck');
+    const plc = document.getElementById('lpmProLiteCheck');
+    if (sc)  sc.style.display  = model === 'dragon'         ? 'block' : 'none';
+    if (dc)  dc.style.display  = model === 'daddy'          ? 'block' : 'none';
+    if (pc)  pc.style.display  = model === 'daddy-pro'      ? 'block' : 'none';
+    if (plc) plc.style.display = model === 'daddy-pro-lite' ? 'block' : 'none';
 
     // Update button backgrounds
-    const sb = document.getElementById('lpmSonBtn');
-    const db = document.getElementById('lpmDaddyBtn');
-    if (sb) sb.style.background = model === 'dragon' ? 'rgba(34,211,238,0.07)' : 'none';
-    if (db) db.style.background = model === 'daddy' ? 'rgba(167,139,250,0.1)' : 'none';
+    const sb  = document.getElementById('lpmSonBtn');
+    const db  = document.getElementById('lpmDaddyBtn');
+    const pb  = document.getElementById('lpmProBtn');
+    const plb = document.getElementById('lpmProLiteBtn');
+    if (sb)  sb.style.background  = model === 'dragon'         ? 'rgba(34,211,238,0.07)'  : 'none';
+    if (db)  db.style.background  = model === 'daddy'          ? 'rgba(167,139,250,0.1)'  : 'none';
+    if (pb)  pb.style.background  = model === 'daddy-pro'      ? 'rgba(167,139,250,0.15)' : 'none';
+    if (plb) plb.style.background = model === 'daddy-pro-lite' ? 'rgba(110,231,183,0.1)'  : 'none';
 
     closeLandingPlusMenu();
   }
 
   function toggleLandingModel() {
-    setLandingModel(_landingModel === 'daddy' ? 'dragon' : 'daddy');
+    const order = ['daddy', 'dragon', 'daddy-pro', 'daddy-pro-lite'];
+    const next = order[(order.indexOf(_landingModel) + 1) % order.length];
+    setLandingModel(next);
   }
 
   function landingMenuAttach() {
@@ -8520,6 +9447,309 @@ ${rawReport}`;
   window.openDonationModal  = openDonationModal;
   window.closeDonationModal = closeDonationModal;
 
+  // ══════════════════════════════════════════════════════
+  //  DADDY PRO — WebLLM (Qwen 2.5 7B on-device)
+  // ══════════════════════════════════════════════════════
+
+  let _daddyProEngine = null;
+  let _daddyProLoading = false;
+  let _daddyProReady = false;
+
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+      || (window.innerWidth <= 768);
+  }
+
+  // Show mobile warning modal. onContinue = proceed with Pro, onSwitch = switch to Daddy
+  function showDaddyProMobileCheck(onContinue, onSwitch) {
+    if (!isMobileDevice()) {
+      // Desktop — no warning, proceed directly
+      onContinue();
+      return;
+    }
+    const modal = document.getElementById('daddyProMobileModal');
+    if (!modal) { onContinue(); return; }
+    modal.style.display = 'flex';
+    modal._onContinue = onContinue;
+    modal._onSwitch   = onSwitch;
+  }
+
+  function daddyProModalContinue() {
+    const modal = document.getElementById('daddyProMobileModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    if (modal._onContinue) modal._onContinue();
+  }
+
+  function daddyProModalSwitch() {
+    const modal = document.getElementById('daddyProMobileModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    if (modal._onSwitch) modal._onSwitch();
+  }
+
+  function daddyProModalSwitchLite() {
+    const modal = document.getElementById('daddyProMobileModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    // Switch to Daddy Pro Lite
+    setLandingModel('daddy-pro-lite');
+    // Also sync the topbar select
+    const sel = document.getElementById('modelSelect');
+    if (sel) sel.value = 'daddy-pro-lite';
+    updateModelSelectColor();
+    _updateModelHintAndBadge('daddy-pro-lite');
+  }
+
+  async function initDaddyProEngine() {
+    if (_daddyProReady || _daddyProLoading) return;
+    _daddyProLoading = true;
+
+    // Show a loading status message in chat
+    const msgs = document.getElementById('messages');
+    const loadGroup = document.createElement('div');
+    loadGroup.id = 'daddy-pro-load-msg';
+    loadGroup.className = 'msg-group ai';
+    loadGroup.innerHTML = `
+      <div class="avatar ai">DG</div>
+      <div class="msg-body">
+        <div class="msg-sender">⚡ DG AI · Daddy Pro</div>
+        <div class="bubble ai" id="daddy-pro-load-bubble">
+          <span style="color:var(--accent);">⚡ Loading Daddy Pro (Qwen 2.5 3B)…</span>
+          <br><span style="font-size:0.75rem;color:var(--muted2);">Downloading model weights — this may take a minute on first load.</span>
+          <br><br>
+          <div id="daddy-pro-progress-bar" style="background:var(--surface2);border-radius:8px;height:6px;overflow:hidden;margin-top:4px;">
+            <div id="daddy-pro-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#a78bfa,#7c3aed);border-radius:8px;transition:width 0.3s ease;"></div>
+          </div>
+          <div id="daddy-pro-progress-text" style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Initialising…</div>
+        </div>
+      </div>`;
+    if (msgs) { msgs.appendChild(loadGroup); scrollBottom && scrollBottom(); }
+
+    try {
+      // Check WebGPU support first
+      if (!navigator.gpu) {
+        throw new Error('WebGPU is not supported in this browser. Try Chrome 113+ or Edge 113+. Firefox and Safari do not support WebGPU yet.');
+      }
+
+      // Dynamically load WebLLM (avoids race condition with module scripts)
+      const webllm = await window._loadWebLLM();
+
+      // Create engine and register progress callback BEFORE reload
+      _daddyProEngine = new webllm.MLCEngine();
+      _daddyProEngine.setInitProgressCallback((progress) => {
+        const fill = document.getElementById('daddy-pro-progress-fill');
+        const text = document.getElementById('daddy-pro-progress-text');
+        if (fill) fill.style.width = ((progress.progress || 0) * 100).toFixed(1) + '%';
+        if (text) text.textContent = progress.text || 'Loading…';
+      });
+
+      await _daddyProEngine.reload('Qwen2.5-3B-Instruct-q4f16_1-MLC');
+
+      _daddyProReady = true;
+      _daddyProLoading = false;
+
+      const bubble = document.getElementById('daddy-pro-load-bubble');
+      if (bubble) bubble.innerHTML = `<span style="color:#a78bfa;">⚡ Daddy Pro ready!</span> <span style="color:var(--muted2);font-size:0.8rem;">Qwen 2.5 3B is running on your device. Start chatting!</span>`;
+
+    } catch (err) {
+      _daddyProLoading = false;
+      const bubble = document.getElementById('daddy-pro-load-bubble');
+      if (bubble) bubble.innerHTML = `<span style="color:#f87171;">⚠️ Daddy Pro failed to load:</span> <span style="color:var(--muted2);font-size:0.8rem;">${err.message}</span><br><span style="font-size:0.7rem;color:var(--muted);">Try switching to Daddy Model instead.</span>`;
+    }
+  }
+
+  async function fetchDaddyProReply(msg) {
+    if (!_daddyProReady || !_daddyProEngine) {
+      if (!_daddyProLoading) initDaddyProEngine();
+      throw new Error('Daddy Pro is still loading. Please wait for the model to finish initialising, then try again.');
+    }
+
+    const systemPrompt = 'You are DG AI — a powerful, expert-level multipurpose assistant. You can help with coding in any language, writing, research, data analysis, creative tasks, explanations, and more. Be concise but thorough. Format code in markdown fences with the appropriate language tag.';
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(lastAiMessage ? [{ role: 'assistant', content: lastAiMessage }] : []),
+      { role: 'user', content: msg }
+    ];
+
+    const reply = await _daddyProEngine.chat.completions.create({
+      messages,
+      max_tokens: 1024,
+      temperature: 0.7,
+    });
+
+    return reply.choices?.[0]?.message?.content?.trim() || null;
+  }
+
+  window.daddyProModalContinue = daddyProModalContinue;
+  window.daddyProModalSwitch   = daddyProModalSwitch;
+  window.daddyProModalSwitchLite = daddyProModalSwitchLite;
+
+  // ── Daddy Pro Lite engine (Qwen 2.5 0.5B) ──
+  let _daddyProLiteEngine  = null;
+  let _daddyProLiteLoading = false;
+  let _daddyProLiteReady   = false;
+
+  async function initDaddyProLiteEngine() {
+    if (_daddyProLiteReady || _daddyProLiteLoading) return;
+    _daddyProLiteLoading = true;
+
+    const msgs = document.getElementById('messages');
+    const loadGroup = document.createElement('div');
+    loadGroup.id = 'daddy-pro-lite-load-msg';
+    loadGroup.className = 'msg-group ai';
+    loadGroup.innerHTML = `
+      <div class="avatar ai">DG</div>
+      <div class="msg-body">
+        <div class="msg-sender">🌙 DG AI · Daddy Pro Lite</div>
+        <div class="bubble ai" id="daddy-pro-lite-load-bubble">
+          <span style="color:#6ee7b7;">🌙 Loading Daddy Pro Lite (Qwen 2.5 0.5B)…</span>
+          <br><span style="font-size:0.75rem;color:var(--muted2);">Lightweight model — fast download, great for mobile.</span>
+          <br><br>
+          <div style="background:var(--surface2);border-radius:8px;height:6px;overflow:hidden;margin-top:4px;">
+            <div id="daddy-pro-lite-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#6ee7b7,#34d399);border-radius:8px;transition:width 0.3s ease;"></div>
+          </div>
+          <div id="daddy-pro-lite-progress-text" style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Initialising…</div>
+        </div>
+      </div>`;
+    if (msgs) { msgs.appendChild(loadGroup); scrollBottom && scrollBottom(); }
+
+    try {
+      // Check WebGPU support first
+      if (!navigator.gpu) {
+        throw new Error('WebGPU is not supported in this browser. Try Chrome 113+ or Edge 113+. Firefox and Safari do not support WebGPU yet.');
+      }
+
+      // Dynamically load WebLLM
+      const webllm = await window._loadWebLLM();
+
+      // Create engine and register progress callback BEFORE reload
+      _daddyProLiteEngine = new webllm.MLCEngine();
+      _daddyProLiteEngine.setInitProgressCallback((progress) => {
+        const fill = document.getElementById('daddy-pro-lite-progress-fill');
+        const text = document.getElementById('daddy-pro-lite-progress-text');
+        if (fill) fill.style.width = ((progress.progress || 0) * 100).toFixed(1) + '%';
+        if (text) text.textContent = progress.text || 'Loading…';
+      });
+
+      await _daddyProLiteEngine.reload('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
+
+      _daddyProLiteReady   = true;
+      _daddyProLiteLoading = false;
+
+      const bubble = document.getElementById('daddy-pro-lite-load-bubble');
+      if (bubble) bubble.innerHTML = `<span style="color:#6ee7b7;">🌙 Daddy Pro Lite ready!</span> <span style="color:var(--muted2);font-size:0.8rem;">Qwen 2.5 0.5B is running on your device.</span>`;
+
+    } catch (err) {
+      _daddyProLiteLoading = false;
+      const bubble = document.getElementById('daddy-pro-lite-load-bubble');
+      if (bubble) bubble.innerHTML = `<span style="color:#f87171;">⚠️ Daddy Pro Lite failed to load:</span> <span style="color:var(--muted2);font-size:0.8rem;">${err.message}</span>`;
+    }
+  }
+
+  async function fetchDaddyProLiteReply(msg) {
+    if (!_daddyProLiteReady || !_daddyProLiteEngine) {
+      if (!_daddyProLiteLoading) initDaddyProLiteEngine();
+      throw new Error('Daddy Pro Lite is still loading. Please wait for the model to finish initialising, then try again.');
+    }
+
+    const systemPrompt = 'You are DG AI — a helpful assistant. Be concise and clear. Format code in markdown fences.';
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(lastAiMessage ? [{ role: 'assistant', content: lastAiMessage }] : []),
+      { role: 'user', content: msg }
+    ];
+
+    const reply = await _daddyProLiteEngine.chat.completions.create({
+      messages,
+      max_tokens: 512,
+      temperature: 0.7,
+    });
+
+    return reply.choices?.[0]?.message?.content?.trim() || null;
+  }
+
+  // Auto-suggest Daddy Pro Lite on mobile when page loads
+  (function() {
+    if (isMobileDevice && isMobileDevice() && typeof setLandingModel === 'function') {
+      // Only auto-suggest if user hasn't manually picked a model yet
+      requestAnimationFrame(() => {
+        if (_landingModel === 'daddy') {
+          setLandingModel('daddy-pro-lite');
+        }
+      });
+    }
+  })();
+
+</script>
+
+<!-- ── DADDY PRO MOBILE WARNING MODAL ── -->
+<div id="daddyProMobileModal" style="
+  display:none;position:fixed;inset:0;z-index:9999;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);
+  animation:fadeIn 0.2s ease;
+">
+  <div style="
+    background:linear-gradient(160deg,#0d0f1e 0%,#0a0c18 100%);
+    border:1px solid rgba(167,139,250,0.3);
+    border-radius:20px;padding:32px 28px;max-width:380px;width:90%;
+    box-shadow:0 32px 80px rgba(0,0,0,0.7),0 0 40px rgba(167,139,250,0.1);
+    text-align:center;
+  ">
+    <div style="
+      width:60px;height:60px;border-radius:18px;margin:0 auto 20px;
+      background:linear-gradient(135deg,rgba(167,139,250,0.2),rgba(124,58,237,0.3));
+      border:1px solid rgba(167,139,250,0.4);
+      display:flex;align-items:center;justify-content:center;font-size:1.8rem;
+    ">⚡</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#e2d9ff;margin-bottom:10px;letter-spacing:-0.01em;">
+      Daddy Pro not recommended for Mobile
+    </div>
+    <div style="font-size:0.82rem;color:var(--muted2);line-height:1.6;margin-bottom:24px;">
+      Daddy Pro runs a <strong style="color:#a78bfa;">3B parameter model</strong> entirely on your device.
+      Mobile browsers may run out of memory or experience severe slowdowns.
+      <br><br>
+      <span style="color:var(--muted);font-size:0.75rem;">Recommended: Desktop with 8 GB+ RAM.</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-direction:column;">
+      <button onclick="daddyProModalSwitchLite()" style="
+        padding:12px 20px;border-radius:11px;
+        background:linear-gradient(135deg,rgba(110,231,183,0.12),rgba(52,211,153,0.08));
+        border:1px solid rgba(110,231,183,0.35);
+        color:#6ee7b7;font-family:inherit;font-size:0.85rem;font-weight:700;
+        cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;
+      " onmouseover="this.style.background='rgba(110,231,183,0.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(110,231,183,0.12),rgba(52,211,153,0.08))'">
+        🌙 Use Daddy Pro Lite instead
+      </button>
+      <button onclick="daddyProModalSwitch()" style="
+        padding:12px 20px;border-radius:11px;
+        background:linear-gradient(135deg,rgba(34,211,238,0.1),rgba(52,211,153,0.06));
+        border:1px solid rgba(34,211,238,0.25);
+        color:var(--accent);font-family:inherit;font-size:0.82rem;font-weight:600;
+        cursor:pointer;transition:all 0.2s;
+      " onmouseover="this.style.background='rgba(34,211,238,0.18)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,211,238,0.1),rgba(52,211,153,0.06))'">
+        👑 Switch to Daddy
+      </button>
+      <button onclick="daddyProModalContinue()" style="
+        padding:12px 20px;border-radius:11px;
+        background:transparent;
+        border:1px solid rgba(255,255,255,0.1);
+        color:var(--muted2);font-family:inherit;font-size:0.82rem;font-weight:600;
+        cursor:pointer;transition:all 0.2s;
+      " onmouseover="this.style.borderColor='rgba(167,139,250,0.4)';this.style.color='#a78bfa'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted2)'">
+        Continue with Pro anyway
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-init Daddy Pro engine if it was the last selected model (optional, skip for now)
+</script>
+
+<script>
   // Initialise landing extras after DOM is ready
   requestAnimationFrame(_buildLandingInputExtras);
 
@@ -8534,6 +9764,185 @@ ${rawReport}`;
       deepBtn.textContent = 'Deep Search Off';
     }
   });
+
+  // ══════════════════════════════════════════════════════
+  //  SETTINGS MODAL
+  // ══════════════════════════════════════════════════════
+  const THEME_STORAGE_KEY = 'dg_ai_theme_v1';
+
+  const THEMES = {
+    cyber: {
+      accentRgb:'34,211,238',
+      accent:'#22d3ee', accent2:'#06b6d4', green:'#34d399', teal:'#2dd4bf',
+      bg:'#030508', surface:'#0b0e18', surface2:'#101420', surface3:'#0d1120',
+      text:'#eef0ff', muted:'#505570', muted2:'#7880a0',
+      glow:'rgba(34,211,238,0.15)',
+      bgGlass:'rgba(3,5,8,0.88)', bgGlass2:'rgba(8,10,20,0.97)', bgGlass3:'rgba(13,15,26,0.9)',
+      bubbleAi1:'#0d1120', bubbleAi2:'#090c17',
+      userAvatar1:'#1e2235', userAvatar2:'#13162a',
+      sendBtn:'linear-gradient(145deg,#22d3ee 0%,#0891b2 60%,#0e7490 100%)',
+      codeBg:'#03050d', inputAreaBg:'rgba(3,5,8,0.92)',
+      composerBg:'linear-gradient(160deg,#0d1020 0%,#090c18 100%)',
+      thinkingBg1:'#0d1120', thinkingBg2:'#090c17',
+      border:'rgba(255,255,255,0.05)', border2:'rgba(255,255,255,0.10)',
+    },
+    purple: {
+      accentRgb:'167,139,250',
+      accent:'#a78bfa', accent2:'#7c3aed', green:'#c4b5fd', teal:'#8b5cf6',
+      bg:'#060210', surface:'#0d0620', surface2:'#130a2e', surface3:'#0f0825',
+      text:'#ede8ff', muted:'#4a4070', muted2:'#7060a8',
+      glow:'rgba(124,58,237,0.18)',
+      bgGlass:'rgba(6,2,16,0.9)', bgGlass2:'rgba(10,5,28,0.97)', bgGlass3:'rgba(14,8,34,0.92)',
+      bubbleAi1:'#0f0825', bubbleAi2:'#0a051a',
+      userAvatar1:'#1a1030', userAvatar2:'#110820',
+      sendBtn:'linear-gradient(145deg,#a78bfa 0%,#7c3aed 60%,#6d28d9 100%)',
+      codeBg:'#050212', inputAreaBg:'rgba(6,2,16,0.94)',
+      composerBg:'linear-gradient(160deg,#0f0825 0%,#0a051a 100%)',
+      thinkingBg1:'#0f0825', thinkingBg2:'#0a051a',
+      border:'rgba(167,139,250,0.08)', border2:'rgba(167,139,250,0.14)',
+    },
+    ember: {
+      accentRgb:'248,113,113',
+      accent:'#f87171', accent2:'#ef4444', green:'#fbbf24', teal:'#fca5a5',
+      bg:'#090202', surface:'#140404', surface2:'#1c0606', surface3:'#160505',
+      text:'#fff0f0', muted:'#5a3030', muted2:'#8a5555',
+      glow:'rgba(239,68,68,0.18)',
+      bgGlass:'rgba(9,2,2,0.9)', bgGlass2:'rgba(15,4,4,0.97)', bgGlass3:'rgba(20,5,5,0.92)',
+      bubbleAi1:'#160505', bubbleAi2:'#100303',
+      userAvatar1:'#2a0a0a', userAvatar2:'#1c0606',
+      sendBtn:'linear-gradient(145deg,#f87171 0%,#ef4444 60%,#dc2626 100%)',
+      codeBg:'#070101', inputAreaBg:'rgba(9,2,2,0.94)',
+      composerBg:'linear-gradient(160deg,#160505 0%,#100303 100%)',
+      thinkingBg1:'#160505', thinkingBg2:'#100303',
+      border:'rgba(248,113,113,0.08)', border2:'rgba(248,113,113,0.14)',
+    },
+    ocean: {
+      accentRgb:'56,189,248',
+      accent:'#38bdf8', accent2:'#0ea5e9', green:'#34d399', teal:'#7dd3fc',
+      bg:'#010610', surface:'#040e1e', surface2:'#07152c', surface3:'#061228',
+      text:'#e0f4ff', muted:'#2a4a60', muted2:'#4a7090',
+      glow:'rgba(14,165,233,0.18)',
+      bgGlass:'rgba(1,6,16,0.9)', bgGlass2:'rgba(4,10,24,0.97)', bgGlass3:'rgba(6,14,30,0.92)',
+      bubbleAi1:'#061228', bubbleAi2:'#030c1e',
+      userAvatar1:'#0a2040', userAvatar2:'#06152c',
+      sendBtn:'linear-gradient(145deg,#38bdf8 0%,#0ea5e9 60%,#0284c7 100%)',
+      codeBg:'#010510', inputAreaBg:'rgba(1,6,16,0.94)',
+      composerBg:'linear-gradient(160deg,#061228 0%,#030c1e 100%)',
+      thinkingBg1:'#061228', thinkingBg2:'#030c1e',
+      border:'rgba(56,189,248,0.08)', border2:'rgba(56,189,248,0.14)',
+    },
+    forest: {
+      accentRgb:'74,222,128',
+      accent:'#4ade80', accent2:'#22c55e', green:'#86efac', teal:'#6ee7b7',
+      bg:'#010801', surface:'#041008', surface2:'#07180c', surface3:'#051410',
+      text:'#e8ffe8', muted:'#2a4a30', muted2:'#4a7050',
+      glow:'rgba(34,197,94,0.18)',
+      bgGlass:'rgba(1,8,1,0.9)', bgGlass2:'rgba(4,12,6,0.97)', bgGlass3:'rgba(6,16,8,0.92)',
+      bubbleAi1:'#051410', bubbleAi2:'#030e08',
+      userAvatar1:'#0a2a10', userAvatar2:'#06180c',
+      sendBtn:'linear-gradient(145deg,#4ade80 0%,#22c55e 60%,#16a34a 100%)',
+      codeBg:'#010601', inputAreaBg:'rgba(1,8,1,0.94)',
+      composerBg:'linear-gradient(160deg,#051410 0%,#030e08 100%)',
+      thinkingBg1:'#051410', thinkingBg2:'#030e08',
+      border:'rgba(74,222,128,0.08)', border2:'rgba(74,222,128,0.14)',
+    },
+    gold: {
+      accentRgb:'251,191,36',
+      accent:'#fbbf24', accent2:'#f59e0b', green:'#34d399', teal:'#fcd34d',
+      bg:'#070501', surface:'#110e02', surface2:'#1a1504', surface3:'#161203',
+      text:'#fff8e0', muted:'#504020', muted2:'#887040',
+      glow:'rgba(245,158,11,0.18)',
+      bgGlass:'rgba(7,5,1,0.9)', bgGlass2:'rgba(12,9,2,0.97)', bgGlass3:'rgba(16,12,3,0.92)',
+      bubbleAi1:'#161203', bubbleAi2:'#100e02',
+      userAvatar1:'#2a1e04', userAvatar2:'#1a1504',
+      sendBtn:'linear-gradient(145deg,#fbbf24 0%,#f59e0b 60%,#d97706 100%)',
+      codeBg:'#060400', inputAreaBg:'rgba(7,5,1,0.94)',
+      composerBg:'linear-gradient(160deg,#161203 0%,#100e02 100%)',
+      thinkingBg1:'#161203', thinkingBg2:'#100e02',
+      border:'rgba(251,191,36,0.08)', border2:'rgba(251,191,36,0.14)',
+    },
+  };
+
+  function applyTheme(name) {
+    const t = THEMES[name];
+    if (!t) return;
+    const s = document.documentElement.style;
+    // Core palette
+    s.setProperty('--accent-rgb', t.accentRgb);
+    s.setProperty('--accent',   t.accent);
+    s.setProperty('--accent2',  t.accent2);
+    s.setProperty('--green',    t.green);
+    s.setProperty('--teal',     t.teal);
+    s.setProperty('--bg',       t.bg);
+    s.setProperty('--surface',  t.surface);
+    s.setProperty('--surface2', t.surface2);
+    s.setProperty('--surface3', t.surface3);
+    s.setProperty('--text',     t.text);
+    s.setProperty('--muted',    t.muted);
+    s.setProperty('--muted2',   t.muted2);
+    s.setProperty('--glow',     t.glow);
+    s.setProperty('--border',   t.border);
+    s.setProperty('--border2',  t.border2);
+    // Derived glass/surface vars
+    s.setProperty('--bg-glass',         t.bgGlass);
+    s.setProperty('--bg-glass2',        t.bgGlass2);
+    s.setProperty('--bg-glass3',        t.bgGlass3);
+    s.setProperty('--bubble-ai-bg1',    t.bubbleAi1);
+    s.setProperty('--bubble-ai-bg2',    t.bubbleAi2);
+    s.setProperty('--user-avatar-bg1',  t.userAvatar1);
+    s.setProperty('--user-avatar-bg2',  t.userAvatar2);
+    s.setProperty('--send-btn-bg',      t.sendBtn);
+    s.setProperty('--code-bg',          t.codeBg);
+    s.setProperty('--input-area-bg',    t.inputAreaBg);
+    s.setProperty('--composer-bg',      t.composerBg);
+    s.setProperty('--thinking-bg1',     t.thinkingBg1);
+    s.setProperty('--thinking-bg2',     t.thinkingBg2);
+    // Also update body background directly for full coverage
+    document.body.style.background = t.bg;
+    // Update theme card borders + dots
+    document.querySelectorAll('.settings-theme-card').forEach(el => {
+      el.style.borderColor = 'rgba(255,255,255,0.07)';
+      el.style.boxShadow = 'none';
+    });
+    ['cyber','purple','ember','ocean','forest','gold'].forEach(id => {
+      const d = document.getElementById('theme-' + id + '-dot');
+      if (d) d.style.opacity = '0.35';
+    });
+    const card = document.getElementById('theme-' + name);
+    if (card) {
+      card.style.borderColor = t.accent;
+      card.style.boxShadow = '0 0 18px ' + t.glow + ', inset 0 0 0 1px ' + t.accent + '22';
+    }
+    const dot = document.getElementById('theme-' + name + '-dot');
+    if (dot) dot.style.opacity = '1';
+    try { localStorage.setItem(THEME_STORAGE_KEY, name); } catch(_) {}
+  }
+
+  function openSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    closeSidebar();
+    // Restore active theme border
+    const saved = (() => { try { return localStorage.getItem(THEME_STORAGE_KEY) || 'cyber'; } catch(_) { return 'cyber'; } })();
+    applyTheme(saved);
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  window.openSettingsModal = openSettingsModal;
+  window.closeSettingsModal = closeSettingsModal;
+  window.applyTheme = applyTheme;
+
+  // Restore saved theme on load
+  (function() {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved && THEMES[saved]) applyTheme(saved);
+    } catch(_) {}
+  })();
 
 </script>
 </body>
